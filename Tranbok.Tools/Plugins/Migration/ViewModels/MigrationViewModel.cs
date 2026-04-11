@@ -570,7 +570,7 @@ public sealed class MigrationViewModel : ObservableObject
 
             if (!raw.Success && !string.IsNullOrWhiteSpace(raw.Error))
             {
-                AppendLog("[warn] dotnet ef migrations list failed — showing filesystem scan as fallback");
+                AppendLog("[MigrationListFallbackWarning] dotnet ef migrations list failed — showing filesystem scan as fallback");
                 AppendLog(raw.Error.TrimEnd());
             }
 
@@ -850,14 +850,14 @@ public sealed class MigrationViewModel : ObservableObject
             if (!string.IsNullOrWhiteSpace(result.Output))
                 AppendLog(result.Output.TrimEnd());
             if (!string.IsNullOrWhiteSpace(result.Error))
-                AppendLog($"[stderr]  {result.Error.TrimEnd()}");
+                AppendLog(result.Error.TrimEnd().StartsWith("[") ? result.Error.TrimEnd() : $"[StandardError] {result.Error.TrimEnd()}");
 
             AppendLog(result.Success ? "✓ Completed" : "✗ Failed");
             StatusMessage = result.Success ? $"✓ Done  ·  {ActiveProfile.ProfileName}" : "✗ Failed  ·  see output log";
         }
         catch (Exception ex)
         {
-            AppendLog($"[exception]  {ex.Message}");
+            AppendLog($"[UnhandledException] {ex}");
             StatusMessage = "Operation failed";
         }
         finally

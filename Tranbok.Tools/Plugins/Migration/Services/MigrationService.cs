@@ -37,7 +37,8 @@ public sealed class MigrationService
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
     };
 
     // ─────────────────────────────────────────────────────────
@@ -299,7 +300,7 @@ public sealed class MigrationService
     // dotnet ef migrations add
     // ─────────────────────────────────────────────────────────
 
-    public Task<ProcessResult> AddMigrationAsync(
+    public async Task<ProcessResult> AddMigrationAsync(
         string projectPath,
         string startupProjectPath,
         string migrationName,
@@ -313,7 +314,21 @@ public sealed class MigrationService
             workspace.WorkspaceProjectPath, workspace.StartupProjectPath, profile.ContextName,
             $"--output-dir \"{workspace.RelativeOutputDirectory}\"");
 
-        return RunWorkspaceEfAsync(workspace, args, ct, profile.ConnectionString);
+        var result = await RunWorkspaceEfAsync(workspace, args, ct, profile.ConnectionString);
+        var commandLog = string.Join(Environment.NewLine, new[]
+        {
+            $"[EfCommand] dotnet {args}",
+            $"[WorkspaceDirectory] {workspace.WorkspaceDirectory}",
+            $"[RelativeOutputDirectory] {workspace.RelativeOutputDirectory}",
+            $"[OutputDirectory] {GetOutputDirectory(projectPath, profile)}"
+        });
+
+        return result with
+        {
+            Output = string.IsNullOrWhiteSpace(result.Output)
+                ? commandLog
+                : commandLog + Environment.NewLine + result.Output
+        };
     }
 
     // ─────────────────────────────────────────────────────────
@@ -457,6 +472,8 @@ public sealed class MigrationService
         var domainProjectName = Path.GetFileNameWithoutExtension(domainProjectPath);
         var toolsMigrationRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "Plugins", "Migration"));
         var workspaceDirectory = Path.Combine(toolsMigrationRoot, WorkspaceDirectoryName, domainProjectName, profile.ContextName, DbTypeFolder(profile.DbType));
+        if (Directory.Exists(workspaceDirectory))
+            Directory.Delete(workspaceDirectory, recursive: true);
         Directory.CreateDirectory(workspaceDirectory);
 
         var workspaceProjectName = $"{domainProjectName}.{profile.ContextName}.{DbTypeFolder(profile.DbType)}.Workspace";
@@ -465,8 +482,9 @@ public sealed class MigrationService
         Directory.CreateDirectory(outputDirectory);
         var relativeOutputDirectory = Path.GetRelativePath(workspaceDirectory, outputDirectory);
 
-        File.WriteAllText(workspaceProjectPath, BuildWorkspaceProjectXml(workspaceDirectory, domainProjectPath, providerProjectPath));
-        File.WriteAllText(Path.Combine(workspaceDirectory, "DesignTimeFactory.cs"), BuildWorkspaceFactoryCode(profile));
+        var workspaceProjectXml = BuildWorkspaceProjectXml(workspaceDirectory, domainProjectPath, providerProjectPath);
+        File.WriteAllText(workspaceProjectPath, workspaceProjectXml);
+        File.WriteAllText(Path.Combine(workspaceDirectory, "DesignTimeFactory.cs"), BuildWorkspaceFactoryCode(profile, workspaceProjectName));
 
         return new WorkspaceInfo
         {
@@ -483,22 +501,24 @@ public sealed class MigrationService
     {
         static string Normalize(string value) => value.Replace('\\', '/');
 
+        var settingsPath = Path.Combine(Path.GetDirectoryName(domainProjectPath)!, "DesignSettings.json");
         var settings = LoadRequiredDesignSettings(domainProjectPath);
-        var targetFramework = ResolveTargetFramework(settings);
+        var targetFramework = ResolveTargetFramework(settings, settingsPath);
 
         var project = new XElement("Project",
             new XAttribute("Sdk", "Microsoft.NET.Sdk"),
             new XElement("PropertyGroup",
                 new XElement("TargetFramework", targetFramework),
                 new XElement("ImplicitUsings", "enable"),
-                new XElement("Nullable", "enable")));
+                new XElement("Nullable", "enable"),
+                new XElement("TranbokWorkspaceMarker", "design-settings-v2")));
 
         var references = new XElement("ItemGroup",
             new XElement("ProjectReference", new XAttribute("Include", Normalize(Path.GetRelativePath(workspaceDirectory, domainProjectPath)))),
             new XElement("ProjectReference", new XAttribute("Include", Normalize(Path.GetRelativePath(workspaceDirectory, providerProjectPath)))));
 
         var packages = new XElement("ItemGroup");
-        foreach (var package in ResolveRequiredWorkspacePackages(settings))
+        foreach (var package in ResolveRequiredWorkspacePackages(settings, settingsPath))
         {
             var packageReference = new XElement("PackageReference",
                 new XAttribute("Include", package.PackageName),
@@ -519,10 +539,10 @@ public sealed class MigrationService
         return new XDocument(project).ToString();
     }
 
-    private static string ResolveTargetFramework(WorkspaceDesignSettings settings)
+    private static string ResolveTargetFramework(WorkspaceDesignSettings settings, string settingsPath)
     {
         if (string.IsNullOrWhiteSpace(settings.DotnetVersion))
-            throw new InvalidOperationException("DesignSettings.json 缺少 DotnetVersion 配置。");
+            throw new InvalidOperationException($"[WorkspaceConfigException] DesignSettings.json 缺少 DotnetVersion 配置：{settingsPath}");
 
         return settings.DotnetVersion;
     }
@@ -531,28 +551,28 @@ public sealed class MigrationService
     {
         var projectDirectory = Path.GetDirectoryName(domainProjectPath);
         if (string.IsNullOrWhiteSpace(projectDirectory))
-            throw new InvalidOperationException("无法定位 Domain 项目目录，无法读取 DesignSettings.json。");
+            throw new InvalidOperationException($"[WorkspaceConfigException] 无法定位 Domain 项目目录，无法读取 DesignSettings.json。Domain 项目：{domainProjectPath}");
 
         var settingsPath = Path.Combine(projectDirectory, "DesignSettings.json");
         if (!File.Exists(settingsPath))
-            throw new InvalidOperationException($"未找到 DesignSettings.json：{settingsPath}");
+            throw new InvalidOperationException($"[WorkspaceConfigException] 未找到 DesignSettings.json：{settingsPath}");
 
         try
         {
             var json = File.ReadAllText(settingsPath);
             var settings = JsonSerializer.Deserialize<WorkspaceDesignSettings>(json, JsonOptions);
             if (settings is null)
-                throw new InvalidOperationException("DesignSettings.json 解析结果为空。");
+                throw new InvalidOperationException($"[WorkspaceConfigException] DesignSettings.json 解析结果为空：{settingsPath}");
 
             return settings;
         }
         catch (JsonException ex)
         {
-            throw new InvalidOperationException($"DesignSettings.json 解析失败：{ex.Message}", ex);
+            throw new InvalidOperationException($"[WorkspaceConfigException] DesignSettings.json 解析失败：{settingsPath}\n{ex.Message}", ex);
         }
     }
 
-    private static IReadOnlyList<WorkspacePackageVersion> ResolveRequiredWorkspacePackages(WorkspaceDesignSettings settings)
+    private static IReadOnlyList<WorkspacePackageVersion> ResolveRequiredWorkspacePackages(WorkspaceDesignSettings settings, string settingsPath)
     {
         var packages = settings.Packages
             .Where(p => !string.IsNullOrWhiteSpace(p.PackageName) && !string.IsNullOrWhiteSpace(p.Version))
@@ -561,34 +581,42 @@ public sealed class MigrationService
             .ToList();
 
         if (packages.Count == 0)
-            throw new InvalidOperationException("DesignSettings.json 缺少 Packages 配置。");
+            throw new InvalidOperationException($"[WorkspaceConfigException] DesignSettings.json 缺少 Packages 配置：{settingsPath}");
 
         if (packages.Any(p => string.IsNullOrWhiteSpace(p.PackageName) || string.IsNullOrWhiteSpace(p.Version)))
-            throw new InvalidOperationException("DesignSettings.json 的 Packages 项必须同时提供 PackageName 和 Version。");
+            throw new InvalidOperationException($"[WorkspaceConfigException] DesignSettings.json 的 Packages 项必须同时提供 PackageName 和 Version：{settingsPath}");
 
         if (packages.All(p => !string.Equals(p.PackageName, "Microsoft.EntityFrameworkCore.Design", StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException("DesignSettings.json 的 Packages 中必须包含 Microsoft.EntityFrameworkCore.Design 版本配置。");
+            throw new InvalidOperationException($"[WorkspaceConfigException] DesignSettings.json 的 Packages 中必须包含 Microsoft.EntityFrameworkCore.Design 版本配置：{settingsPath}");
 
         return packages;
     }
 
-    private static string BuildWorkspaceFactoryCode(DbConnectionProfile profile)
+    private static string BuildWorkspaceFactoryCode(DbConnectionProfile profile, string workspaceProjectName)
     {
         var escapedContextName = profile.ContextName.Replace("\"", "\"\"");
+        var escapedWorkspaceProjectName = workspaceProjectName.Replace("\"", "\"\"");
+
+        var providerUsing = profile.DbType switch
+        {
+            DbType.SqlServer => "using Microsoft.EntityFrameworkCore.SqlServer;",
+            DbType.PostgreSQL => "using Npgsql.EntityFrameworkCore.PostgreSQL;",
+            DbType.MySQL => "using MySQL.EntityFrameworkCore.Extensions;",
+            _ => string.Empty
+        };
 
         var providerCode = profile.DbType switch
         {
-            DbType.SqlServer => "Microsoft.EntityFrameworkCore.SqlServerDbContextOptionsExtensions.UseSqlServer(builder, connectionString, o => { o.EnableRetryOnFailure(maxRetryCount: 3); o.CommandTimeout(30); });",
-            DbType.PostgreSQL => "Npgsql.EntityFrameworkCore.PostgreSQLDbContextOptionsBuilderExtensions.UseNpgsql(builder, connectionString);",
-            DbType.MySQL => "MySQL.EntityFrameworkCore.Extensions.MySQLDbContextOptionsExtensions.UseMySQL(builder, connectionString);",
+            DbType.SqlServer => $"options.UseSqlServer(connectionString, o => {{ o.MigrationsAssembly(\"{escapedWorkspaceProjectName}\"); o.EnableRetryOnFailure(maxRetryCount: 3); o.CommandTimeout(30); }});",
+            DbType.PostgreSQL => $"options.UseNpgsql(connectionString, o => o.MigrationsAssembly(\"{escapedWorkspaceProjectName}\"));",
+            DbType.MySQL => $"options.UseMySQL(connectionString, o => o.MigrationsAssembly(\"{escapedWorkspaceProjectName}\"));",
             _ => throw new NotSupportedException($"Unsupported database type: {profile.DbType}")
         };
 
         var template = @"using System;
-using System.Linq;
-using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+__PROVIDER_USING__
 using Tranbok.Domain.Context;
 
 namespace Tranbok.Migrations.WorkSpace;
@@ -597,46 +625,19 @@ public sealed class WorkspaceDesignTimeFactory : IDesignTimeDbContextFactory<__C
 {
     public __CONTEXT_NAME__ CreateDbContext(string[] args)
     {
-        var connectionString = Environment.GetEnvironmentVariable(""TRANBOK_DB_CONNECTION"");
-        if (string.IsNullOrWhiteSpace(connectionString))
-            throw new InvalidOperationException(""No connection string configured for workspace design-time factory."");
+        var connectionString = Environment.GetEnvironmentVariable(""TRANBOK_DB_CONNECTION"")
+            ?? throw new InvalidOperationException(""No connection string configured.""
+        );
 
-        var contextType = typeof(BaseDbContext).Assembly
-            .GetTypes()
-            .FirstOrDefault(t => typeof(DbContext).IsAssignableFrom(t)
-                && !t.IsAbstract
-                && string.Equals(t.Name, ""__CONTEXT_NAME__"", StringComparison.Ordinal));
-
-        if (contextType is null)
-            throw new InvalidOperationException(""DbContext '__CONTEXT_NAME__' was not found in Tranbok.Domain assembly."");
-
-        var optionsType = typeof(DbContextOptionsBuilder<>).MakeGenericType(contextType);
-        var builder = (DbContextOptionsBuilder)Activator.CreateInstance(optionsType)!;
+        var options = new DbContextOptionsBuilder<__CONTEXT_NAME__>();
         __PROVIDER_CODE__
-
-        var ctor = contextType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
-            .OrderByDescending(c => c.GetParameters().Length)
-            .FirstOrDefault(c =>
-            {
-                var parameters = c.GetParameters();
-                return parameters.Length >= 1
-                    && typeof(DbContextOptions).IsAssignableFrom(parameters[0].ParameterType)
-                    && parameters.Skip(1).All(p => p.HasDefaultValue || Nullable.GetUnderlyingType(p.ParameterType) is not null || !p.ParameterType.IsValueType);
-            });
-
-        if (ctor is null)
-            throw new InvalidOperationException($""No suitable constructor found for {contextType.FullName}."");
-
-        var ctorArgs = ctor.GetParameters()
-            .Select((p, i) => i == 0 ? builder.Options : p.HasDefaultValue ? p.DefaultValue : null)
-            .ToArray();
-
-        return (__CONTEXT_NAME__)ctor.Invoke(ctorArgs);
+        return new __CONTEXT_NAME__(options.Options);
     }
 }";
 
         return template
             .Replace("__CONTEXT_NAME__", escapedContextName)
+            .Replace("__PROVIDER_USING__", providerUsing)
             .Replace("__PROVIDER_CODE__", providerCode);
     }
 
@@ -652,7 +653,22 @@ public sealed class WorkspaceDesignTimeFactory : IDesignTimeDbContextFactory<__C
             return new ProcessResult(
                 false,
                 restore.Output,
-                $"Workspace restore failed.\n{restore.Error}");
+                $"[WorkspaceRestoreException] {restore.Error}");
+        }
+
+        var build = await RunDotnetAsync(workspace.WorkspaceDirectory, $"build \"{workspace.WorkspaceProjectPath}\" --no-restore -v minimal", ct, connectionString);
+        if (!build.Success)
+        {
+            var combinedOutput = string.Join(Environment.NewLine, new[]
+            {
+                restore.Output.TrimEnd(),
+                build.Output.TrimEnd()
+            }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+            return new ProcessResult(
+                false,
+                combinedOutput,
+                $"[WorkspaceBuildException] {build.Error}");
         }
 
         return await RunDotnetAsync(workspace.WorkspaceDirectory, arguments, ct, connectionString);
@@ -698,7 +714,7 @@ public sealed class WorkspaceDesignTimeFactory : IDesignTimeDbContextFactory<__C
         catch (OperationCanceledException)
         {
             try { process.Kill(); } catch { }
-            return new ProcessResult(false, stdout.ToString(), "Operation cancelled.");
+            return new ProcessResult(false, stdout.ToString(), "[WorkspaceOperationCanceledException] Operation cancelled.");
         }
 
         return new ProcessResult(
