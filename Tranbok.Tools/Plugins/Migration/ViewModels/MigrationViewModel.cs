@@ -92,7 +92,7 @@ public sealed class MigrationViewModel : ObservableObject
 
     public string CurrentDatabaseTypeDisplay => HasSelectedProfile ? ActiveProfile.DisplayName : string.Empty;
 
-    public string StartupProjectPath => ResolveProviderProjectPath(ActiveProfile);
+    public string StartupProjectPath => ProjectPath;
 
     public MigrationEntry? SelectedMigration
     {
@@ -552,7 +552,7 @@ public sealed class MigrationViewModel : ObservableObject
         if (!HasProjectPath || !HasSelectedProfile)
             return;
 
-        var startupProjectPath = ResolveProviderProjectPath(ActiveProfile);
+        var startupProjectPath = ProjectPath;
         var (migrations, raw) = await _service.ListMigrationsAsync(ProjectPath, startupProjectPath, ActiveProfile);
 
         Application.Current.Dispatcher.Invoke(() =>
@@ -617,7 +617,7 @@ public sealed class MigrationViewModel : ObservableObject
         }
 
         var name = NewMigrationName.Trim();
-        var startupProjectPath = ResolveProviderProjectPath(ActiveProfile);
+        var startupProjectPath = ProjectPath;
 
         await RunOperationAsync($"dotnet ef migrations add {name}", ct =>
             _service.AddMigrationAsync(ProjectPath, startupProjectPath, name, ActiveProfile, ct));
@@ -644,10 +644,6 @@ public sealed class MigrationViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(ActiveProfile.ContextName))
             return "请先填写 DbContext。";
 
-        var providerProjectPath = ResolveProviderProjectPath(ActiveProfile);
-        if (string.IsNullOrWhiteSpace(providerProjectPath) || !File.Exists(providerProjectPath))
-            return "未找到当前数据库类型对应的 Provider 项目，请先确认 Domain 项目路径和数据库类型。";
-
         var designSettingsPath = Path.Combine(Path.GetDirectoryName(ProjectPath)!, "DesignSettings.json");
         if (!File.Exists(designSettingsPath))
             return $"未找到 DesignSettings.json：{designSettingsPath}";
@@ -672,7 +668,7 @@ public sealed class MigrationViewModel : ObservableObject
             "执行更新",
             async () =>
             {
-                var startupProjectPath = ResolveProviderProjectPath(ActiveProfile);
+                var startupProjectPath = ProjectPath;
                 await RunOperationAsync("dotnet ef database update", ct =>
                     _service.UpdateDatabaseAsync(ProjectPath, startupProjectPath, ActiveProfile, null, ct));
 
@@ -698,7 +694,7 @@ public sealed class MigrationViewModel : ObservableObject
             "删除迁移",
             async () =>
             {
-                var startupProjectPath = ResolveProviderProjectPath(ActiveProfile);
+                var startupProjectPath = ProjectPath;
                 var allMigrations = Migrations.ToList();
                 await RunOperationAsync($"撤回 {migration.MigrationName}", ct =>
                     _service.RollbackLastMigrationAsync(ProjectPath, startupProjectPath, ActiveProfile, migration, allMigrations, ct));
@@ -820,33 +816,6 @@ public sealed class MigrationViewModel : ObservableObject
 
         var last = Migrations.OrderBy(m => m.TimestampId).Last();
         return last.FullName == migration.FullName;
-    }
-
-    private string ResolveProviderProjectPath(DbConnectionProfile profile)
-    {
-        if (!HasProjectPath)
-            return string.Empty;
-
-        var domainProjectPath = Path.GetFullPath(ProjectPath);
-        var domainDir = Path.GetDirectoryName(domainProjectPath);
-        if (string.IsNullOrWhiteSpace(domainDir))
-            return string.Empty;
-
-        var tranbokRoot = Directory.GetParent(domainDir)?.FullName;
-        if (string.IsNullOrWhiteSpace(tranbokRoot))
-            return string.Empty;
-
-        var providerFolder = profile.DbType switch
-        {
-            DbType.SqlServer => "Tranbok.Infrastructure.SqlServer",
-            DbType.PostgreSQL => "Tranbok.Infrastructure.PostgreSQL",
-            DbType.MySQL => "Tranbok.Infrastructure.MySQL",
-            _ => string.Empty
-        };
-
-        return string.IsNullOrWhiteSpace(providerFolder)
-            ? string.Empty
-            : Path.Combine(tranbokRoot, "Tranbok.Infrastructure", providerFolder, providerFolder + ".csproj");
     }
 
     private async Task RunOperationAsync(string description, Func<CancellationToken, Task<ProcessResult>> operation)

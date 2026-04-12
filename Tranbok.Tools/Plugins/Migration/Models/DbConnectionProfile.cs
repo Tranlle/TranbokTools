@@ -114,5 +114,4 @@ public sealed class WorkspaceInfo
     public string StartupProjectPath { get; set; } = string.Empty;
     public string RelativeOutputDirectory { get; set; } = string.Empty;
     public string DomainProjectPath { get; set; } = string.Empty;
-    public string ProviderProjectPath { get; set; } = string.Empty;
 }

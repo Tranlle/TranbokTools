@@ -525,7 +525,6 @@ public sealed class MigrationService
             throw new InvalidOperationException("DbContext name is required.");
 
         var domainProjectPath = Path.GetFullPath(projectPath);
-        var providerProjectPath = Path.GetFullPath(startupProjectPath);
         var domainProjectName = Path.GetFileNameWithoutExtension(domainProjectPath);
         var dbFolderName = DbTypeFolder(profile.DbType);
         var toolsMigrationRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "Plugins", "Migration"));
@@ -542,8 +541,7 @@ public sealed class MigrationService
             WorkspaceProjectPath = workspaceProjectPath,
             StartupProjectPath = workspaceProjectPath,
             RelativeOutputDirectory = relativeOutputDirectory,
-            DomainProjectPath = domainProjectPath,
-            ProviderProjectPath = providerProjectPath
+            DomainProjectPath = domainProjectPath
         };
     }
 
@@ -560,14 +558,15 @@ public sealed class MigrationService
                 File.Delete(existingWorkspaceProject);
         }
 
-        var workspaceProjectXml = BuildWorkspaceProjectXml(workspace.WorkspaceDirectory, workspace.DomainProjectPath, workspace.ProviderProjectPath);
+        var workspaceProjectXml = BuildWorkspaceProjectXml(workspace.WorkspaceDirectory, workspace.DomainProjectPath, profile.DbType);
         File.WriteAllText(workspace.WorkspaceProjectPath, workspaceProjectXml);
-        File.WriteAllText(Path.Combine(workspace.WorkspaceDirectory, "DesignTimeFactory.cs"), BuildWorkspaceFactoryCode(profile, Path.GetFileNameWithoutExtension(workspace.WorkspaceProjectPath)));
+        var contextNamespace = ResolveDbContextNamespace(workspace.DomainProjectPath, profile.ContextName);
+        File.WriteAllText(Path.Combine(workspace.WorkspaceDirectory, "DesignTimeFactory.cs"), BuildWorkspaceFactoryCode(profile, Path.GetFileNameWithoutExtension(workspace.WorkspaceProjectPath), contextNamespace));
 
         return workspace;
     }
 
-    private static string BuildWorkspaceProjectXml(string workspaceDirectory, string domainProjectPath, string providerProjectPath)
+    private static string BuildWorkspaceProjectXml(string workspaceDirectory, string domainProjectPath, DbType dbType)
     {
         static string Normalize(string value) => value.Replace('\\', '/');
 
@@ -584,11 +583,10 @@ public sealed class MigrationService
                 new XElement("TranbokWorkspaceMarker", "design-settings-v2")));
 
         var references = new XElement("ItemGroup",
-            new XElement("ProjectReference", new XAttribute("Include", Normalize(Path.GetRelativePath(workspaceDirectory, domainProjectPath)))),
-            new XElement("ProjectReference", new XAttribute("Include", Normalize(Path.GetRelativePath(workspaceDirectory, providerProjectPath)))));
+            new XElement("ProjectReference", new XAttribute("Include", Normalize(Path.GetRelativePath(workspaceDirectory, domainProjectPath)))));
 
         var packages = new XElement("ItemGroup");
-        foreach (var package in ResolveRequiredWorkspacePackages(settings, settingsPath))
+        foreach (var package in ResolveRequiredWorkspacePackages(settings, settingsPath, dbType))
         {
             var packageReference = new XElement("PackageReference",
                 new XAttribute("Include", package.PackageName),
@@ -642,7 +640,7 @@ public sealed class MigrationService
         }
     }
 
-    private static IReadOnlyList<WorkspacePackageVersion> ResolveRequiredWorkspacePackages(WorkspaceDesignSettings settings, string settingsPath)
+    private static IReadOnlyList<WorkspacePackageVersion> ResolveRequiredWorkspacePackages(WorkspaceDesignSettings settings, string settingsPath, DbType dbType)
     {
         var packages = settings.Packages
             .Where(p => !string.IsNullOrWhiteSpace(p.PackageName) && !string.IsNullOrWhiteSpace(p.Version))
@@ -656,16 +654,35 @@ public sealed class MigrationService
         if (packages.Any(p => string.IsNullOrWhiteSpace(p.PackageName) || string.IsNullOrWhiteSpace(p.Version)))
             throw new InvalidOperationException($"[WorkspaceConfigException] DesignSettings.json 的 Packages 项必须同时提供 PackageName 和 Version：{settingsPath}");
 
-        if (packages.All(p => !string.Equals(p.PackageName, "Microsoft.EntityFrameworkCore.Design", StringComparison.OrdinalIgnoreCase)))
+        var designPackage = packages.LastOrDefault(p => string.Equals(p.PackageName, "Microsoft.EntityFrameworkCore.Design", StringComparison.OrdinalIgnoreCase));
+        if (designPackage is null)
             throw new InvalidOperationException($"[WorkspaceConfigException] DesignSettings.json 的 Packages 中必须包含 Microsoft.EntityFrameworkCore.Design 版本配置：{settingsPath}");
+
+        var requiredProviderPackage = dbType switch
+        {
+            DbType.SqlServer => "Microsoft.EntityFrameworkCore.SqlServer",
+            DbType.PostgreSQL => "Npgsql.EntityFrameworkCore.PostgreSQL",
+            DbType.MySQL => "MySQL.EntityFrameworkCore",
+            _ => throw new NotSupportedException($"Unsupported database type: {dbType}")
+        };
+
+        if (packages.All(p => !string.Equals(p.PackageName, requiredProviderPackage, StringComparison.OrdinalIgnoreCase)))
+        {
+            packages.Add(new WorkspacePackageVersion
+            {
+                PackageName = requiredProviderPackage,
+                Version = designPackage.Version
+            });
+        }
 
         return packages;
     }
 
-    private static string BuildWorkspaceFactoryCode(DbConnectionProfile profile, string workspaceProjectName)
+    private static string BuildWorkspaceFactoryCode(DbConnectionProfile profile, string workspaceProjectName, string contextNamespace)
     {
         var escapedContextName = profile.ContextName.Replace("\"", "\"\"");
         var escapedWorkspaceProjectName = workspaceProjectName.Replace("\"", "\"\"");
+        var escapedContextNamespace = contextNamespace.Replace("\"", "\"\"");
 
         var providerUsing = profile.DbType switch
         {
@@ -687,7 +704,7 @@ public sealed class MigrationService
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 __PROVIDER_USING__
-using Tranbok.Domain.Context;
+using __CONTEXT_NAMESPACE__;
 
 namespace Tranbok.Migrations.WorkSpace;
 
@@ -707,8 +724,37 @@ public sealed class WorkspaceDesignTimeFactory : IDesignTimeDbContextFactory<__C
 
         return template
             .Replace("__CONTEXT_NAME__", escapedContextName)
+            .Replace("__CONTEXT_NAMESPACE__", escapedContextNamespace)
             .Replace("__PROVIDER_USING__", providerUsing)
             .Replace("__PROVIDER_CODE__", providerCode);
+    }
+
+    private static string ResolveDbContextNamespace(string domainProjectPath, string contextName)
+    {
+        var projectDirectory = Path.GetDirectoryName(domainProjectPath);
+        if (string.IsNullOrWhiteSpace(projectDirectory))
+            throw new InvalidOperationException($"[WorkspaceConfigException] 无法定位 Domain 项目目录：{domainProjectPath}");
+
+        var classPattern = new Regex($@"\b(class|record)\s+{Regex.Escape(contextName)}\s*(?:\(|:|where|\{{)?", RegexOptions.Compiled);
+        var fileScopedNamespacePattern = new Regex(@"^\s*namespace\s+([A-Za-z_][A-Za-z0-9_.]*)\s*;", RegexOptions.Compiled | RegexOptions.Multiline);
+        var blockNamespacePattern = new Regex(@"^\s*namespace\s+([A-Za-z_][A-Za-z0-9_.]*)\s*\{", RegexOptions.Compiled | RegexOptions.Multiline);
+
+        foreach (var file in Directory.GetFiles(projectDirectory, "*.cs", SearchOption.AllDirectories))
+        {
+            var content = File.ReadAllText(file);
+            if (!classPattern.IsMatch(content))
+                continue;
+
+            var fileScopedNamespaceMatch = fileScopedNamespacePattern.Match(content);
+            if (fileScopedNamespaceMatch.Success)
+                return fileScopedNamespaceMatch.Groups[1].Value;
+
+            var blockNamespaceMatch = blockNamespacePattern.Match(content);
+            if (blockNamespaceMatch.Success)
+                return blockNamespaceMatch.Groups[1].Value;
+        }
+
+        throw new InvalidOperationException($"[WorkspaceConfigException] 未能在 Domain 项目中找到 DbContext '{contextName}' 的命名空间：{domainProjectPath}");
     }
 
     private static async Task<ProcessResult> RunWorkspaceEfAsync(
