@@ -269,13 +269,36 @@
 
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
                             <TextBlock Text="数据库类型" Style="{StaticResource TextLabel}" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                            <RadioButton Content="SQL Server" IsChecked="{Binding IsSqlServer, Mode=TwoWay}" Margin="0,0,12,0"/>
-                            <RadioButton Content="PostgreSQL" IsChecked="{Binding IsPostgreSQL, Mode=TwoWay}" Margin="0,0,12,0"/>
-                            <RadioButton Content="MySQL" IsChecked="{Binding IsMySQL, Mode=TwoWay}"/>
+                            <ItemsControl ItemsSource="{Binding OrderedProfiles}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type models:DbConnectionProfile}">
+                                        <Border x:Name="profileTypeBadge"
+                                                Margin="0,0,12,0"
+                                                Padding="12,6"
+                                                CornerRadius="6"
+                                                BorderThickness="1"
+                                                Background="{StaticResource BgOverlayBrush}"
+                                                BorderBrush="{StaticResource BorderMutedBrush}">
+                                            <TextBlock Text="{Binding DisplayName}"
+                                                       Foreground="{StaticResource FgDefaultBrush}"/>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter TargetName="profileTypeBadge" Property="BorderBrush" Value="{StaticResource FgSubtleBrush}"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
 
                         <TextBlock Grid.Row="1"
-                                   Text="{Binding OutputDirectory, StringFormat='输出目录：{0}'}"
+                                   Text="{Binding OutputDirectory, StringFormat='复制目标目录：{0}'}"
                                    Foreground="{StaticResource FgSubtleBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap"/>
@@ -299,9 +322,10 @@
                                    VerticalAlignment="Center"/>
                         <ComboBox Grid.Column="1"
                                   ItemsSource="{Binding Migrations}"
-                                  SelectedItem="{Binding SelectedMigration, Mode=TwoWay}"
+                                  SelectedItem="{Binding SelectedMigration, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                   DisplayMemberPath="FullName"
                                   MinWidth="280"
+                                  HorizontalContentAlignment="Stretch"
                                   Margin="0,0,12,0"/>
                         <Button Grid.Column="2"
                                 Command="{Binding SaveEditorCommand}"

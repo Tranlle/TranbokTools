@@ -162,7 +162,7 @@ public sealed class MigrationService
         DbConnectionProfile profile,
         CancellationToken ct = default)
     {
-        var workspace = EnsureWorkspace(projectPath, startupProjectPath, profile);
+        var workspace = GetWorkspaceInfo(projectPath, startupProjectPath, profile);
         var args = BuildEfArgs(
             "migrations list", null,
             workspace.WorkspaceProjectPath, workspace.StartupProjectPath, profile.ContextName,
@@ -171,13 +171,11 @@ public sealed class MigrationService
         var result = await RunWorkspaceEfAsync(workspace, args, ct, profile.ConnectionString);
 
         var migrations = ParseMigrationsList(result.Output);
-        EnrichWithFilePaths(migrations, projectPath, profile);
+        EnrichWithFilePaths(migrations, workspace.WorkspaceDirectory, projectPath, profile);
 
-        // If ef list failed but we still got some output lines that look like migrations, keep them.
-        // Otherwise fall back to filesystem scan.
-        if (!result.Success && migrations.Count == 0)
+        if (migrations.Count == 0)
         {
-            var fallback = ScanMigrationFiles(projectPath, profile);
+            var fallback = ScanMigrationFiles(workspace.WorkspaceDirectory, projectPath, profile);
             return (fallback, result);
         }
 
@@ -228,9 +226,11 @@ public sealed class MigrationService
     /// Attach .cs file paths to entries parsed from `ef migrations list`.
     /// Files live at Migrations/{SqlServer|Pgsql|Mysql}/{ts}_{name}.cs
     /// </summary>
-    private static void EnrichWithFilePaths(List<MigrationEntry> entries, string projectPath, DbConnectionProfile profile)
+    private static void EnrichWithFilePaths(List<MigrationEntry> entries, string workspaceDirectory, string projectPath, DbConnectionProfile profile)
     {
-        var dir = GetOutputDirectory(projectPath, profile);
+        var dir = GetWorkspaceMigrationDirectory(workspaceDirectory);
+        if (!Directory.Exists(dir))
+            dir = GetOutputDirectory(projectPath, profile);
         if (!Directory.Exists(dir)) return;
 
         // Build a lookup: fullName → file path
@@ -254,9 +254,11 @@ public sealed class MigrationService
     /// Fallback: scan Migrations/{dbFolder}/ without running dotnet ef.
     /// Used when dotnet ef tools aren't available or the project can't build.
     /// </summary>
-    private static List<MigrationEntry> ScanMigrationFiles(string projectPath, DbConnectionProfile profile)
+    private static List<MigrationEntry> ScanMigrationFiles(string workspaceDirectory, string projectPath, DbConnectionProfile profile)
     {
-        var dir = GetOutputDirectory(projectPath, profile);
+        var dir = GetWorkspaceMigrationDirectory(workspaceDirectory);
+        if (!Directory.Exists(dir))
+            dir = GetOutputDirectory(projectPath, profile);
         if (!Directory.Exists(dir)) return [];
 
         var pattern = new Regex(@"^(\d{14})_(.+)\.cs$", RegexOptions.Compiled);
@@ -312,15 +314,18 @@ public sealed class MigrationService
         var args = BuildEfArgs(
             "migrations add", migrationName,
             workspace.WorkspaceProjectPath, workspace.StartupProjectPath, profile.ContextName,
-            $"--output-dir \"{workspace.RelativeOutputDirectory}\"");
+            null);
 
         var result = await RunWorkspaceEfAsync(workspace, args, ct, profile.ConnectionString);
+        if (result.Success)
+            CopyWorkspaceMigrationsToOutput(workspace.WorkspaceDirectory, GetOutputDirectory(projectPath, profile));
+
         var commandLog = string.Join(Environment.NewLine, new[]
         {
             $"[EfCommand] dotnet {args}",
             $"[WorkspaceDirectory] {workspace.WorkspaceDirectory}",
-            $"[RelativeOutputDirectory] {workspace.RelativeOutputDirectory}",
-            $"[OutputDirectory] {GetOutputDirectory(projectPath, profile)}"
+            $"[WorkspaceMigrationDirectory] {GetWorkspaceMigrationDirectory(workspace.WorkspaceDirectory)}",
+            $"[CopyTargetDirectory] {GetOutputDirectory(projectPath, profile)}"
         });
 
         return result with
@@ -342,7 +347,7 @@ public sealed class MigrationService
         string? targetMigration = null,
         CancellationToken ct = default)
     {
-        var workspace = EnsureWorkspace(projectPath, startupProjectPath, profile);
+        var workspace = GetWorkspaceInfo(projectPath, startupProjectPath, profile);
         var target = string.IsNullOrWhiteSpace(targetMigration) ? string.Empty : $" {targetMigration}";
 
         var args = BuildEfArgs(
@@ -388,7 +393,7 @@ public sealed class MigrationService
         }
 
         // Step 2 — dotnet ef migrations remove  (EF Core removes files + updates snapshot)
-        var workspace = EnsureWorkspace(projectPath, startupProjectPath, profile);
+        var workspace = GetWorkspaceInfo(projectPath, startupProjectPath, profile);
 
         var removeArgs = BuildEfArgs(
             "migrations remove", null,
@@ -434,6 +439,58 @@ public sealed class MigrationService
             DbTypeFolder(profile.DbType));
     }
 
+    private static string GetWorkspaceMigrationDirectory(string workspaceDirectory)
+    {
+        var candidates = new[]
+        {
+            workspaceDirectory,
+            Path.Combine(workspaceDirectory, "Migrations"),
+            Path.Combine(workspaceDirectory, "Migration"),
+            Path.Combine(workspaceDirectory, "Migrations", "Output"),
+            Path.Combine(workspaceDirectory, "Migration", "Output")
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (!Directory.Exists(candidate))
+                continue;
+
+            var hasMigrationFile = Directory.GetFiles(candidate, "*.cs", SearchOption.TopDirectoryOnly)
+                .Select(Path.GetFileName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Any(name => Regex.IsMatch(name!, @"^\d{14}_.+\.cs$", RegexOptions.Compiled)
+                             && !name!.EndsWith(".Designer.cs", StringComparison.OrdinalIgnoreCase)
+                             && !name.EndsWith("Snapshot.cs", StringComparison.OrdinalIgnoreCase));
+
+            if (hasMigrationFile)
+                return candidate;
+        }
+
+        return workspaceDirectory;
+    }
+
+    private static void CopyWorkspaceMigrationsToOutput(string workspaceDirectory, string outputDirectory)
+    {
+        var sourceDirectory = GetWorkspaceMigrationDirectory(workspaceDirectory);
+        if (!Directory.Exists(sourceDirectory))
+            return;
+
+        Directory.CreateDirectory(outputDirectory);
+
+        var migrationFilePattern = new Regex(@"^\d{14}_.+\.cs$", RegexOptions.Compiled);
+
+        foreach (var file in Directory.GetFiles(sourceDirectory, "*.cs"))
+        {
+            var fileName = Path.GetFileName(file);
+            if (!migrationFilePattern.IsMatch(fileName))
+                continue;
+            if (fileName.EndsWith(".Designer.cs", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            File.Copy(file, Path.Combine(outputDirectory, fileName), overwrite: true);
+        }
+    }
+
     private static string BuildEfArgs(
         string command,
         string? positional,
@@ -458,7 +515,7 @@ public sealed class MigrationService
         return sb.ToString();
     }
 
-    private static WorkspaceInfo EnsureWorkspace(string projectPath, string startupProjectPath, DbConnectionProfile profile)
+    private static WorkspaceInfo GetWorkspaceInfo(string projectPath, string startupProjectPath, DbConnectionProfile profile)
     {
         if (string.IsNullOrWhiteSpace(projectPath))
             throw new InvalidOperationException("Domain project path is required.");
@@ -470,21 +527,14 @@ public sealed class MigrationService
         var domainProjectPath = Path.GetFullPath(projectPath);
         var providerProjectPath = Path.GetFullPath(startupProjectPath);
         var domainProjectName = Path.GetFileNameWithoutExtension(domainProjectPath);
+        var dbFolderName = DbTypeFolder(profile.DbType);
         var toolsMigrationRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "Plugins", "Migration"));
-        var workspaceDirectory = Path.Combine(toolsMigrationRoot, WorkspaceDirectoryName, domainProjectName, profile.ContextName, DbTypeFolder(profile.DbType));
-        if (Directory.Exists(workspaceDirectory))
-            Directory.Delete(workspaceDirectory, recursive: true);
-        Directory.CreateDirectory(workspaceDirectory);
-
-        var workspaceProjectName = $"{domainProjectName}.{profile.ContextName}.{DbTypeFolder(profile.DbType)}.Workspace";
+        var workspaceDirectory = Path.Combine(toolsMigrationRoot, WorkspaceDirectoryName, domainProjectName, profile.ContextName, dbFolderName);
+        var contextProjectName = $"{profile.ContextName}Project";
+        var workspaceProjectName = $"{domainProjectName}.{contextProjectName}.{dbFolderName}.Workspace";
         var workspaceProjectPath = Path.Combine(workspaceDirectory, workspaceProjectName + ".csproj");
         var outputDirectory = GetOutputDirectory(domainProjectPath, profile);
-        Directory.CreateDirectory(outputDirectory);
         var relativeOutputDirectory = Path.GetRelativePath(workspaceDirectory, outputDirectory);
-
-        var workspaceProjectXml = BuildWorkspaceProjectXml(workspaceDirectory, domainProjectPath, providerProjectPath);
-        File.WriteAllText(workspaceProjectPath, workspaceProjectXml);
-        File.WriteAllText(Path.Combine(workspaceDirectory, "DesignTimeFactory.cs"), BuildWorkspaceFactoryCode(profile, workspaceProjectName));
 
         return new WorkspaceInfo
         {
@@ -495,6 +545,26 @@ public sealed class MigrationService
             DomainProjectPath = domainProjectPath,
             ProviderProjectPath = providerProjectPath
         };
+    }
+
+    private static WorkspaceInfo EnsureWorkspace(string projectPath, string startupProjectPath, DbConnectionProfile profile)
+    {
+        var workspace = GetWorkspaceInfo(projectPath, startupProjectPath, profile);
+
+        Directory.CreateDirectory(workspace.WorkspaceDirectory);
+        Directory.CreateDirectory(GetOutputDirectory(workspace.DomainProjectPath, profile));
+
+        foreach (var existingWorkspaceProject in Directory.GetFiles(workspace.WorkspaceDirectory, "*.csproj", SearchOption.TopDirectoryOnly))
+        {
+            if (!string.Equals(existingWorkspaceProject, workspace.WorkspaceProjectPath, StringComparison.OrdinalIgnoreCase))
+                File.Delete(existingWorkspaceProject);
+        }
+
+        var workspaceProjectXml = BuildWorkspaceProjectXml(workspace.WorkspaceDirectory, workspace.DomainProjectPath, workspace.ProviderProjectPath);
+        File.WriteAllText(workspace.WorkspaceProjectPath, workspaceProjectXml);
+        File.WriteAllText(Path.Combine(workspace.WorkspaceDirectory, "DesignTimeFactory.cs"), BuildWorkspaceFactoryCode(profile, Path.GetFileNameWithoutExtension(workspace.WorkspaceProjectPath)));
+
+        return workspace;
     }
 
     private static string BuildWorkspaceProjectXml(string workspaceDirectory, string domainProjectPath, string providerProjectPath)

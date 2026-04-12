@@ -70,6 +70,7 @@ public sealed class MigrationViewModel : ObservableObject
             OnPropertyChanged(nameof(IsPostgreSQL));
             OnPropertyChanged(nameof(IsMySQL));
             OnPropertyChanged(nameof(OutputDirectory));
+            OnPropertyChanged(nameof(OrderedProfiles));
 
             ClearMigrationSelection();
         }
@@ -77,23 +78,19 @@ public sealed class MigrationViewModel : ObservableObject
 
     public bool HasSelectedProfile => _activeProfile is not null;
 
-    public bool IsSqlServer
-    {
-        get => HasSelectedProfile && ActiveProfile.DbType == DbType.SqlServer;
-        set { if (value && HasSelectedProfile) ActiveProfile.DbType = DbType.SqlServer; }
-    }
+    public bool IsSqlServer => HasSelectedProfile && ActiveProfile.DbType == DbType.SqlServer;
 
-    public bool IsPostgreSQL
-    {
-        get => HasSelectedProfile && ActiveProfile.DbType == DbType.PostgreSQL;
-        set { if (value && HasSelectedProfile) ActiveProfile.DbType = DbType.PostgreSQL; }
-    }
+    public bool IsPostgreSQL => HasSelectedProfile && ActiveProfile.DbType == DbType.PostgreSQL;
 
-    public bool IsMySQL
-    {
-        get => HasSelectedProfile && ActiveProfile.DbType == DbType.MySQL;
-        set { if (value && HasSelectedProfile) ActiveProfile.DbType = DbType.MySQL; }
-    }
+    public bool IsMySQL => HasSelectedProfile && ActiveProfile.DbType == DbType.MySQL;
+
+    public IReadOnlyList<DbConnectionProfile> OrderedProfiles => DbProfiles
+        .Where(profile => profile.DbType == ActiveProfile.DbType)
+        .OrderByDescending(profile => ReferenceEquals(profile, ActiveProfile))
+        .ThenBy(profile => profile.ProfileName, StringComparer.CurrentCultureIgnoreCase)
+        .ToList();
+
+    public string CurrentDatabaseTypeDisplay => HasSelectedProfile ? ActiveProfile.DisplayName : string.Empty;
 
     public string StartupProjectPath => ResolveProviderProjectPath(ActiveProfile);
 
@@ -289,7 +286,15 @@ public sealed class MigrationViewModel : ObservableObject
         RollbackSelectedCommand = new RelayCommand(() => _ = RollbackSelectedAsync(), () => IsIdle && CanRollback);
         CancelOperationCommand = new RelayCommand(() => _cts?.Cancel(), () => IsBusy);
         ClearLogCommand = new RelayCommand(() => OutputLog = string.Empty);
-        SelectProfileCommand = new RelayCommand<DbConnectionProfile>(profile => { if (profile is not null) { ActiveProfile = profile; ClearMigrationSelection(); } });
+        SelectProfileCommand = new RelayCommand<DbConnectionProfile>(profile =>
+        {
+            if (profile is null)
+                return;
+
+            ActiveProfile = profile;
+            ClearMigrationSelection();
+            _ = RefreshMigrationsAsync();
+        });
         SelectMigrationCommand = new RelayCommand<MigrationEntry>(migration => SelectedMigration = migration);
 
         OnPropertyChanged(nameof(HasProjectPath));
@@ -298,6 +303,11 @@ public sealed class MigrationViewModel : ObservableObject
         OnPropertyChanged(nameof(IsSqlServer));
         OnPropertyChanged(nameof(IsPostgreSQL));
         OnPropertyChanged(nameof(IsMySQL));
+        OnPropertyChanged(nameof(OrderedProfiles));
+        OnPropertyChanged(nameof(CurrentDatabaseTypeDisplay));
+
+        if (HasProjectPath && HasSelectedProfile)
+            _ = RefreshMigrationsAsync();
     }
 
     private void InitializeProfilesFromExistingConfig()
@@ -426,6 +436,7 @@ public sealed class MigrationViewModel : ObservableObject
         var active = DbProfiles.FirstOrDefault(p => p.Id == activeProfileId) ?? DbProfiles.First();
         ActiveProfile = active;
         ClearMigrationSelection();
+        _ = RefreshMigrationsAsync();
     }
 
     private void AddProfile()
@@ -442,6 +453,7 @@ public sealed class MigrationViewModel : ObservableObject
 
         DbProfiles.Add(profile);
         ActiveProfile = profile;
+        OnPropertyChanged(nameof(OrderedProfiles));
         AppendLog($"✓ 已新增配置：{profile.ProfileName}");
     }
 
@@ -454,6 +466,7 @@ public sealed class MigrationViewModel : ObservableObject
         var index = DbProfiles.IndexOf(profile);
         DbProfiles.Remove(profile);
         ActiveProfile = DbProfiles[Math.Max(0, index - 1)];
+        OnPropertyChanged(nameof(OrderedProfiles));
         AppendLog($"✓ 已删除配置：{profile.ProfileName}");
     }
 
@@ -518,7 +531,9 @@ public sealed class MigrationViewModel : ObservableObject
         OnPropertyChanged(nameof(IsPostgreSQL));
         OnPropertyChanged(nameof(IsMySQL));
         OnPropertyChanged(nameof(OutputDirectory));
+        OnPropertyChanged(nameof(OrderedProfiles));
         ClearMigrationSelection();
+        _ = RefreshMigrationsAsync();
     }
 
     private void ClearMigrationSelection()

@@ -197,6 +197,15 @@
         <Setter Property="Padding"       Value="12,10"/>
     </Style>
 
+    <Style x:Key="GhostComboBox" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+        <Setter Property="Background" Value="{StaticResource BgOverlayBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource FgDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}"/>
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="Height" Value="34"/>
+    </Style>
+
+
     <!-- ═══════════════════════════════════════════════════════
          BUTTON — base, primary, danger, success, ghost
          ═══════════════════════════════════════════════════════ -->
@@ -377,20 +386,27 @@
          COMBO BOX
          ═══════════════════════════════════════════════════════ -->
     <Style TargetType="ComboBoxItem">
-        <Setter Property="Foreground"    Value="{StaticResource FgDefaultBrush}"/>
-        <Setter Property="Background"    Value="Transparent"/>
-        <Setter Property="Padding"       Value="10,6"/>
-        <Setter Property="FontFamily"    Value="{StaticResource SansFont}"/>
-        <Setter Property="FontSize"      Value="13"/>
+        <Setter Property="Foreground" Value="{StaticResource FgDefaultBrush}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Padding" Value="14,9"/>
+        <Setter Property="FontFamily" Value="{StaticResource SansFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBoxItem">
-                    <Border x:Name="bd" Background="{TemplateBinding Background}"
+                    <Border x:Name="bd"
+                            Background="{TemplateBinding Background}"
                             Padding="{TemplateBinding Padding}">
-                        <ContentPresenter/>
+                        <ContentPresenter HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource BgHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="bd" Property="Background" Value="{StaticResource BgHoverBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -400,68 +416,104 @@
     </Style>
 
     <Style TargetType="ComboBox">
-        <Setter Property="Background"    Value="{StaticResource BgCanvasBrush}"/>
-        <Setter Property="Foreground"    Value="{StaticResource FgDefaultBrush}"/>
-        <Setter Property="BorderBrush"   Value="{StaticResource BorderDefaultBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BgDefaultBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource FgDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderMutedBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Padding"       Value="8,6"/>
-        <Setter Property="Height"        Value="32"/>
-        <Setter Property="FontFamily"    Value="{StaticResource SansFont}"/>
-        <Setter Property="FontSize"      Value="13"/>
+        <Setter Property="Padding" Value="14,8"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="FontFamily" Value="{StaticResource SansFont}"/>
+        <Setter Property="FontSize" Value="13"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
         <Setter Property="ItemContainerStyle" Value="{StaticResource {x:Type ComboBoxItem}}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
-                    <Grid>
+                    <Grid SnapsToDevicePixels="True">
                         <Border x:Name="bd"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="6">
                             <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="36"/>
+                                </Grid.ColumnDefinitions>
                                 <ContentPresenter x:Name="ContentSite"
-                                                  Content="{TemplateBinding SelectionBoxItem}"
-                                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                  Grid.Column="0"
                                                   Margin="{TemplateBinding Padding}"
                                                   VerticalAlignment="Center"
                                                   HorizontalAlignment="Left"
+                                                  Content="{TemplateBinding SelectionBoxItem}"
+                                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                  RecognizesAccessKey="True"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}"
                                                   IsHitTestVisible="False"/>
-                                <TextBlock x:Name="arrow" Text="&#xE70D;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="10"
-                                           Foreground="{StaticResource FgMutedBrush}"
-                                           HorizontalAlignment="Right"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,10,0"
-                                           IsHitTestVisible="False"/>
+                                <Border Grid.Column="1"
+                                        Background="Transparent"
+                                        BorderBrush="{StaticResource BorderMutedBrush}"
+                                        BorderThickness="1,0,0,0">
+                                    <TextBlock x:Name="arrow"
+                                               Text="&#xE70D;"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="10"
+                                               Foreground="{StaticResource FgSubtleBrush}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               IsHitTestVisible="False"/>
+                                </Border>
                             </Grid>
                         </Border>
-                        <ToggleButton x:Name="ToggleButton" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                                      Background="Transparent" BorderBrush="Transparent" BorderThickness="0"
-                                      Focusable="False" ClickMode="Press" FocusVisualStyle="{x:Null}"/>
+                        <ToggleButton x:Name="ToggleButton"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                      Background="Transparent"
+                                      BorderBrush="Transparent"
+                                      BorderThickness="0"
+                                      Focusable="False"
+                                      ClickMode="Press"
+                                      FocusVisualStyle="{x:Null}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="hoverLayer" Background="Transparent"/>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="hoverLayer" Property="Background" Value="#401A2028"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="hoverLayer" Property="Background" Value="#6620262F"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
                         <Popup x:Name="PART_Popup"
                                IsOpen="{TemplateBinding IsDropDownOpen}"
                                Placement="Bottom"
+                               PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
                                AllowsTransparency="True"
+                               PopupAnimation="Fade"
                                Focusable="False">
-                            <Border Background="{StaticResource BgOverlayBrush}"
-                                    BorderBrush="{StaticResource BorderDefaultBrush}"
+                            <Border Margin="0,4,0,0"
+                                    MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                    Background="{StaticResource BgDefaultBrush}"
+                                    BorderBrush="{StaticResource BorderMutedBrush}"
                                     BorderThickness="1"
                                     CornerRadius="6"
-                                    Margin="0,2,0,0">
-                                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                                    <ItemsPresenter/>
+                                    SnapsToDevicePixels="True">
+                                <ScrollViewer MaxHeight="260"
+                                              CanContentScroll="True"
+                                              VerticalScrollBarVisibility="Auto">
+                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
                                 </ScrollViewer>
                             </Border>
                         </Popup>
                     </Grid>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource FgSubtleBrush}"/>
-                        </Trigger>
-                        <Trigger Property="IsFocused" Value="True">
-                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource BorderFocusBrush}"/>
+                        <Trigger Property="HasItems" Value="False">
+                            <Setter TargetName="bd" Property="Opacity" Value="0.78"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
