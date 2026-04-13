@@ -30,6 +30,7 @@ public abstract class BasePlugin : IPlugin, IPluginViewProvider
             metadata.Description,
             metadata.Author,
             metadata.Icon,
+            metadata.Tags,
             loadMode,
             isolationMode);
     }

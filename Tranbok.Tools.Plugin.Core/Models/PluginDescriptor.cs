@@ -11,5 +11,6 @@ public sealed record PluginDescriptor(
     string? Description = null,
     string? Author = null,
     string? Icon = null,
+    string? Tags = null,
     PluginLoadMode LoadMode = PluginLoadMode.Lazy,
     PluginIsolationMode IsolationMode = PluginIsolationMode.AssemblyLoadContext);

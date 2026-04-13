@@ -16,5 +16,7 @@ public sealed class MigrationPluginMetadata : PluginBaseMetadata
 
     public override string Author => "Tranbok";
 
-    public override string Icon => "database";
+    public override string Icon => "Database";
+
+    public override string Tags => "database,efcore,migration";
 }

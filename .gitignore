@@ -34,3 +34,8 @@ TestResults.xml
 /Tranbok.Tools.Plugin.Migration/bin/
 /Tranbok.Tools.Plugin.Migration/obj/
 /Tranbok.Tools/.vs/
+/Tranbok.Tools.Plugin.Settings/bin/
+/Tranbok.Tools.Plugin.Settings/obj/
+/Tranbok.Tools.Plugin.PluginManager/obj/
+/Tranbok.Tools.Plugin.PluginManager/bin/
+/temp/

@@ -1,3 +1,4 @@
+using System.Reflection;
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -25,9 +26,7 @@ public sealed class ThemeService : IThemeService
     {
         var palette = _registry.Find(_currentPaletteKey) ?? _registry.GetAll().FirstOrDefault();
         if (palette is null)
-        {
             return;
-        }
 
         palette.BaseVariant = themeVariant;
         ApplyPalette(palette);
@@ -49,9 +48,7 @@ public sealed class ThemeService : IThemeService
     {
         var palette = _registry.Find(paletteKey) ?? _registry.GetAll().FirstOrDefault();
         if (palette is null)
-        {
             return;
-        }
 
         _currentPaletteKey = palette.Key;
         ApplyPalette(palette);
@@ -65,9 +62,7 @@ public sealed class ThemeService : IThemeService
     private static void ApplyBrush(string key, string color)
     {
         if (Application.Current is null)
-        {
             return;
-        }
 
         Application.Current.Resources[key] = new SolidColorBrush(Color.Parse(color));
     }
@@ -75,9 +70,7 @@ public sealed class ThemeService : IThemeService
     private void ApplyPalette(ThemePalette palette)
     {
         if (Application.Current is null)
-        {
             return;
-        }
 
         Application.Current.RequestedThemeVariant = palette.BaseVariant;
         _currentPaletteKey = palette.Key;
@@ -94,5 +87,77 @@ public sealed class ThemeService : IThemeService
         ApplyBrush("TranbokBadgeSuccessBackgroundBrush", palette.BadgeSuccessBackgroundBrush);
         ApplyBrush("TranbokBadgeWarningBackgroundBrush", palette.BadgeWarningBackgroundBrush);
         ApplyBrush("TranbokBadgeDangerBackgroundBrush", palette.BadgeDangerBackgroundBrush);
+
+        ApplyMaterialTheme(palette);
+    }
+
+    private static void ApplyMaterialTheme(ThemePalette palette)
+    {
+        if (Application.Current is null)
+            return;
+
+        var materialTheme = Application.Current.Styles.FirstOrDefault(style =>
+            style.GetType().FullName?.Contains("MaterialTheme", StringComparison.Ordinal) == true);
+
+        if (materialTheme is null)
+            return;
+
+        TrySetBaseTheme(materialTheme, palette.BaseVariant);
+        TrySetThemeColor(materialTheme, "SetPrimaryColor", palette.AccentBrush);
+        TrySetThemeColor(materialTheme, "SetSecondaryColor", palette.AccentBrush);
+    }
+
+    private static void TrySetBaseTheme(object materialTheme, ThemeVariant variant)
+    {
+        var currentThemeProperty = materialTheme.GetType().GetProperty("CurrentTheme", BindingFlags.Public | BindingFlags.Instance);
+        var currentTheme = currentThemeProperty?.GetValue(materialTheme);
+        if (currentTheme is null)
+            return;
+
+        var setBaseThemeMethod = currentTheme.GetType().GetMethod("SetBaseTheme", BindingFlags.Public | BindingFlags.Instance);
+        if (setBaseThemeMethod is null)
+            return;
+
+        var argumentType = setBaseThemeMethod.GetParameters().FirstOrDefault()?.ParameterType;
+        if (argumentType is null)
+            return;
+
+        var assembly = currentTheme.GetType().Assembly;
+        object? argument = null;
+
+        if (argumentType.IsEnum)
+        {
+            var name = variant == ThemeVariant.Light ? "Light" : "Dark";
+            argument = Enum.Parse(argumentType, name, true);
+        }
+        else
+        {
+            var themeType = assembly.GetType("Material.Styles.Themes.Theme");
+            var propertyName = variant == ThemeVariant.Light ? "Light" : "Dark";
+            argument = themeType?.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+        }
+
+        if (argument is not null)
+            setBaseThemeMethod.Invoke(currentTheme, [argument]);
+
+        if (currentThemeProperty?.CanWrite == true)
+            currentThemeProperty.SetValue(materialTheme, currentTheme);
+    }
+
+    private static void TrySetThemeColor(object materialTheme, string methodName, string colorText)
+    {
+        var currentThemeProperty = materialTheme.GetType().GetProperty("CurrentTheme", BindingFlags.Public | BindingFlags.Instance);
+        var currentTheme = currentThemeProperty?.GetValue(materialTheme);
+        if (currentTheme is null)
+            return;
+
+        var method = currentTheme.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance, [typeof(Color)]);
+        if (method is null)
+            return;
+
+        method.Invoke(currentTheme, [Color.Parse(colorText)]);
+
+        if (currentThemeProperty?.CanWrite == true)
+            currentThemeProperty.SetValue(materialTheme, currentTheme);
     }
 }

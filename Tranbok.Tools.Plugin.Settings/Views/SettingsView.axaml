@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Tranbok.Tools.Plugin.Settings.ViewModels"
+             x:Class="Tranbok.Tools.Plugin.Settings.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="20">
+    <Border Classes="card">
+      <StackPanel Spacing="16">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="section-title" Text="主题设置" />
+          <TextBlock Classes="caption-muted" Text="保留全局主题服务，支持明暗切换和配色方案切换。" />
+        </StackPanel>
+
+        <Grid ColumnDefinitions="*,20,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="16">
+          <StackPanel Grid.Row="0" Grid.Column="0" Spacing="8">
+            <TextBlock Classes="form-label" Text="应用名称" />
+            <TextBox Classes="form-control" Text="{Binding AppName, Mode=TwoWay}" PlaceholderText="应用名称" />
+          </StackPanel>
+
+          <StackPanel Grid.Row="0" Grid.Column="2" Spacing="8">
+            <TextBlock Classes="form-label" Text="主题模式" />
+            <ComboBox Classes="form-control"
+                      ItemsSource="{Binding ThemeOptions}"
+                      SelectedItem="{Binding SelectedThemeOption, Mode=TwoWay}"
+                      DisplayMemberBinding="{Binding Label}" />
+          </StackPanel>
+
+          <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Spacing="8">
+            <TextBlock Classes="form-label" Text="内置配色方案" />
+            <ComboBox Classes="form-control"
+                      ItemsSource="{Binding PaletteOptions}"
+                      SelectedItem="{Binding SelectedPaletteOption, Mode=TwoWay}"
+                      DisplayMemberBinding="{Binding Label}" />
+            <TextBlock Classes="caption-muted" Text="{Binding SelectedPaletteOption.Description}" />
+          </StackPanel>
+
+          <CheckBox Grid.Row="2" Grid.ColumnSpan="3"
+                    Content="迁移默认启用 Workspace 模式"
+                    IsChecked="{Binding UseWorkspaceForMigrations, Mode=TwoWay}" />
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="16">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="section-title" Text="高级主题" />
+          <TextBlock Classes="caption-muted" Text="保留自定义 palette 扩展入口。" />
+        </StackPanel>
+
+        <CheckBox Content="显示高级主题设置"
+                  IsChecked="{Binding ShowAdvancedThemeSettings, Mode=TwoWay}" />
+
+        <StackPanel Spacing="16" IsVisible="{Binding ShowAdvancedThemeSettings}">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="form-label" Text="高级主题方案" />
+            <ComboBox Classes="form-control"
+                      ItemsSource="{Binding AdvancedPaletteOptions}"
+                      SelectedItem="{Binding SelectedAdvancedPaletteOption, Mode=TwoWay}"
+                      DisplayMemberBinding="{Binding Label}" />
+            <TextBlock Classes="caption-muted" Text="{Binding SelectedAdvancedPaletteOption.Description}" />
+          </StackPanel>
+
+          <StackPanel Spacing="8">
+            <TextBlock Classes="form-label" Text="自定义主题目录" />
+            <TextBox Classes="form-control" Text="{Binding CustomThemeDirectory, Mode=TwoWay}" />
+          </StackPanel>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="16">
+        <TextBlock Classes="section-title" Text="工作区" />
+        <TextBox Classes="form-control" Text="{Binding WorkspaceRoot, Mode=TwoWay}" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+  </ScrollViewer>
+</UserControl>

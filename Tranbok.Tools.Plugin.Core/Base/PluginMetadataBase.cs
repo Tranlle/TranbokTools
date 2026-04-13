@@ -13,4 +13,6 @@ public abstract class PluginBaseMetadata
     public virtual string Author => string.Empty;
 
     public virtual string Icon => string.Empty;
+
+    public virtual string Tags => string.Empty;
 }

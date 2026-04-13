@@ -10,12 +10,18 @@ public sealed class PluginCatalogService : IPluginCatalogService
     public IReadOnlyList<PluginEntry> Plugins => _plugins;
     public IEnumerable<PluginEntry> EnabledPlugins => _plugins.Where(x => x.IsEnabled);
 
-    public void Register(IPlugin plugin, bool enabledByDefault = true, int? sort = null)
+    public void Register(
+        IPlugin plugin,
+        bool enabledByDefault = true,
+        int? sort = null,
+        bool isBuiltIn = false,
+        bool canDisable = true,
+        string? builtInHint = null)
     {
         if (_plugins.Any(x => x.Id == plugin.Descriptor.Id))
             throw new InvalidOperationException($"Plugin '{plugin.Descriptor.Id}' is already registered.");
 
-        var entry = new PluginEntry(plugin, enabledByDefault);
+        var entry = new PluginEntry(plugin, enabledByDefault, isBuiltIn, canDisable, builtInHint);
         if (sort.HasValue)
             entry.Sort = sort.Value;
         _plugins.Add(entry);

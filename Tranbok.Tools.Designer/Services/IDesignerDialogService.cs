@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Tranbok.Tools.Designer.Models;
-using Tranbok.Tools.Designer.ViewModels;
+using Tranbok.Tools.Designer.ViewModels.Dialogs;
 
 namespace Tranbok.Tools.Designer.Services;
 

@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using Tranbok.Tools.Designer.Models;
 using Tranbok.Tools.Designer.Services;
 using Tranbok.Tools.Designer.ViewModels;
+using Tranbok.Tools.Designer.ViewModels.Dialogs;
 using Tranbok.Tools.Plugin.Migration.Models;
 using Tranbok.Tools.Plugin.Migration.Services;
 
