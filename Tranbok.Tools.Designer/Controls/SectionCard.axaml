@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Tranbok.Tools.Designer.Controls"
+             x:Class="Tranbok.Tools.Designer.Controls.SectionCard"
+             x:DataType="controls:SectionCard"
+             x:Name="Root">
+  <Border Classes="card">
+    <StackPanel Spacing="16">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="section-title"
+                   Text="{Binding Title, ElementName=Root}" />
+        <TextBlock Classes="caption-muted"
+                   Text="{Binding Description, ElementName=Root}"
+                   TextWrapping="Wrap" />
+      </StackPanel>
+
+      <ContentPresenter Content="{Binding Body, ElementName=Root}" />
+    </StackPanel>
+  </Border>
+</UserControl>

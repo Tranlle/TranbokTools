@@ -1,12 +1,13 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:viewModels="using:Tranbok.Tools.Designer.ViewModels.Pages"
+             xmlns:designer="using:Tranbok.Tools.Designer.Controls"
              x:Class="Tranbok.Tools.Designer.Views.DefaultPluginView"
              x:DataType="viewModels:DefaultPluginViewModel">
-  <Border Classes="card">
-    <StackPanel Spacing="12" MaxWidth="620" HorizontalAlignment="Center">
-      <TextBlock Classes="section-title" Text="{Binding Title}" HorizontalAlignment="Center" />
-      <TextBlock Text="{Binding Description}" TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center" Classes="caption-muted" />
-    </StackPanel>
-  </Border>
+  <designer:SectionCard Title="{Binding Title}">
+    <designer:SectionCard.Body>
+      <designer:EmptyState Title="{Binding Title}"
+                           Description="{Binding Description}" />
+    </designer:SectionCard.Body>
+  </designer:SectionCard>
 </UserControl>

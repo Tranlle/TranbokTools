@@ -87,6 +87,18 @@ public sealed class ThemeService : IThemeService
         ApplyBrush("TranbokBadgeSuccessBackgroundBrush", palette.BadgeSuccessBackgroundBrush);
         ApplyBrush("TranbokBadgeWarningBackgroundBrush", palette.BadgeWarningBackgroundBrush);
         ApplyBrush("TranbokBadgeDangerBackgroundBrush", palette.BadgeDangerBackgroundBrush);
+        ApplyBrush("ComboBoxDropDownBackground", palette.SurfaceBrush);
+        ApplyBrush("ComboBoxDropDownBorderBrush", palette.BorderBrush);
+        ApplyBrush("ComboBoxItemBackground", palette.SurfaceBrush);
+        ApplyBrush("ComboBoxItemBackgroundPointerOver", palette.SurfaceElevatedBrush);
+        ApplyBrush("ComboBoxItemBackgroundSelected", palette.SurfaceElevatedBrush);
+        ApplyBrush("ComboBoxItemBackgroundSelectedPointerOver", palette.SurfaceElevatedBrush);
+        ApplyBrush("ComboBoxItemForeground", palette.TextPrimaryBrush);
+        ApplyBrush("ComboBoxItemForegroundPointerOver", palette.TextPrimaryBrush);
+        ApplyBrush("ComboBoxItemForegroundSelected", palette.TextPrimaryBrush);
+        ApplyBrush("ComboBoxItemForegroundSelectedPointerOver", palette.TextPrimaryBrush);
+        ApplyBrush("ComboBoxItemBorderBrushSelected", palette.BorderBrush);
+        ApplyBrush("ComboBoxItemBorderBrushSelectedPointerOver", palette.BorderBrush);
 
         ApplyMaterialTheme(palette);
     }

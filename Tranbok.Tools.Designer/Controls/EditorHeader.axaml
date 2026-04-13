@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Tranbok.Tools.Designer.Controls"
+             x:Class="Tranbok.Tools.Designer.Controls.EditorHeader"
+             x:DataType="controls:EditorHeader"
+             x:Name="Root">
+  <Grid ColumnDefinitions="*,Auto"
+        ColumnSpacing="12">
+    <TextBlock Classes="field-value"
+               Text="{Binding Title, ElementName=Root}"
+               VerticalAlignment="Center" />
+    <ContentPresenter Grid.Column="1"
+                      Content="{Binding ActionContent, ElementName=Root}"
+                      VerticalAlignment="Center" />
+  </Grid>
+</UserControl>

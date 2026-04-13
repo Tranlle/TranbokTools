@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Tranbok.Tools.Designer.Controls"
+             x:Class="Tranbok.Tools.Designer.Controls.SelectableListCardItem"
+             x:DataType="controls:SelectableListCardItem"
+             x:Name="Root">
+  <UserControl.Styles>
+    <Style Selector="Border#Card">
+      <Setter Property="Background" Value="{DynamicResource TranbokSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border#Card:pointerover">
+      <Setter Property="Background" Value="{DynamicResource TranbokSurfaceElevatedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TranbokBorderBrush}" />
+    </Style>
+    <Style Selector="UserControl.selected Border#Card">
+      <Setter Property="Background" Value="{DynamicResource TranbokSurfaceElevatedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TranbokBorderBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border x:Name="Card"
+          Margin="0,0,0,10"
+          Padding="14"
+          CornerRadius="12">
+    <Grid ColumnDefinitions="*,Auto"
+          ColumnSpacing="12">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding Title, ElementName=Root}"
+                   FontWeight="SemiBold" />
+        <TextBlock Classes="caption-muted"
+                   Text="{Binding Subtitle, ElementName=Root}" />
+        <TextBlock Classes="caption-muted"
+                   Text="{Binding Meta, ElementName=Root}"
+                   TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+
+      <ContentPresenter Grid.Column="1"
+                        Content="{Binding ActionContent, ElementName=Root}"
+                        VerticalAlignment="Top" />
+    </Grid>
+  </Border>
+</UserControl>

@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Tranbok.Tools.Designer.Controls"
+             x:Class="Tranbok.Tools.Designer.Controls.ActionBar"
+             x:DataType="controls:ActionBar"
+             x:Name="Root">
+  <Border Classes="card">
+    <StackPanel Spacing="16">
+      <Grid ColumnDefinitions="*,Auto"
+            ColumnSpacing="16">
+        <ContentPresenter Content="{Binding LeadContent, ElementName=Root}"
+                          VerticalAlignment="Center" />
+
+        <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="12"
+                    VerticalAlignment="Center">
+          <TextBlock Text="{Binding StatusText, ElementName=Root}"
+                     VerticalAlignment="Center" />
+          <ProgressBar Width="120"
+                       IsIndeterminate="True"
+                       IsVisible="{Binding IsBusy, ElementName=Root}" />
+        </StackPanel>
+      </Grid>
+
+      <ContentPresenter Content="{Binding ActionsContent, ElementName=Root}" />
+    </StackPanel>
+  </Border>
+</UserControl>

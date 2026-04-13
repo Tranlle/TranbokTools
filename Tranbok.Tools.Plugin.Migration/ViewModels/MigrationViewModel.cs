@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Data;
 using Avalonia.VisualTree;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -75,6 +76,27 @@ public sealed partial class MigrationViewModel : PluginBaseViewModel
     public string CurrentDatabaseTypeDisplay => HasSelectedProfile ? ActiveProfile!.DisplayName : string.Empty;
     public string OutputDirectory => HasProjectPath && HasSelectedProfile ? MigrationService.GetOutputDirectory(ProjectPath, ActiveProfile!) : string.Empty;
     public string SelectedMigrationFileName => HasSelectedMigration ? $"{SelectedMigration!.FullName}.cs" : "— 请从左侧选择迁移 —";
+    public IReadOnlyList<PropertyGridItem> ActiveProfileProperties =>
+    [
+        new PropertyGridItem { Label = "数据库类型", Value = CurrentDatabaseTypeDisplay },
+        new PropertyGridItem { Label = "项目路径", Value = ProjectPath },
+        new PropertyGridItem
+        {
+            Label = "迁移文件",
+            Value = HasMigrations
+                ? new ComboBox
+                {
+                    [!ComboBox.ItemsSourceProperty] = new Binding(nameof(Migrations)),
+                    [!SelectingItemsControl.SelectedItemProperty] = new Binding(nameof(SelectedMigration)) { Mode = BindingMode.TwoWay },
+                    ItemTemplate = new FuncDataTemplate<MigrationEntry>((item, _) => new TextBlock
+                    {
+                        Text = item?.FullName,
+                        TextTrimming = TextTrimming.CharacterEllipsis
+                    })
+                }
+                : new TextBlock { Text = "暂无迁移文件", Classes = { "caption-muted" } }
+        }
+    ];
     public string RollbackTooltip => SelectedMigration switch
     {
         null => "请先选择一条迁移",
@@ -197,6 +219,7 @@ public sealed partial class MigrationViewModel : PluginBaseViewModel
         OnPropertyChanged(nameof(CurrentDatabaseTypeDisplay));
         OnPropertyChanged(nameof(OutputDirectory));
         OnPropertyChanged(nameof(SelectedMigrationFileName));
+        OnPropertyChanged(nameof(ActiveProfileProperties));
         OnPropertyChanged(nameof(RollbackTooltip));
         OnPropertyChanged(nameof(OrderedProfiles));
     }

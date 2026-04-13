@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Tranbok.Tools.Designer.Controls"
+             x:Class="Tranbok.Tools.Designer.Controls.StatusBadge"
+             x:DataType="controls:StatusBadge"
+             x:Name="Root">
+  <Border Background="{Binding BadgeBackground, ElementName=Root}"
+          CornerRadius="999"
+          Padding="12,6"
+          VerticalAlignment="Center">
+    <TextBlock Text="{Binding Text, ElementName=Root}"
+               Foreground="{Binding BadgeForeground, ElementName=Root}" />
+  </Border>
+</UserControl>

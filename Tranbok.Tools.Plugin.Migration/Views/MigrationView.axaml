@@ -2,118 +2,107 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Tranbok.Tools.Plugin.Migration.ViewModels"
              xmlns:models="using:Tranbok.Tools.Plugin.Migration.Models"
+             xmlns:designer="using:Tranbok.Tools.Designer.Controls"
              x:DataType="vm:MigrationViewModel"
              x:Class="Tranbok.Tools.Plugin.Migration.Views.MigrationView">
-  <Grid RowDefinitions="Auto,20,*,20,180">
-    <Border Grid.Row="0" Classes="card">
-      <StackPanel Spacing="16">
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+  <designer:ToolPageLayout FooterHeight="180">
+    <designer:ToolPageLayout.HeaderContent>
+      <designer:ActionBar StatusText="{Binding StatusMessage}"
+                          IsBusy="{Binding IsBusy}">
+        <designer:ActionBar.LeadContent>
           <TextBlock Classes="caption-muted"
                      Text="{Binding OutputDirectory, StringFormat='输出目录：{0}'}"
                      TextWrapping="Wrap"
                      VerticalAlignment="Center" />
-          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-            <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" />
-            <ProgressBar Width="120" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
-          </StackPanel>
-        </Grid>
+        </designer:ActionBar.LeadContent>
+        <designer:ActionBar.ActionsContent>
+          <designer:ActionGroup>
+            <designer:ActionGroup.Body>
+              <WrapPanel>
+                <Button Content="新增配置" Command="{Binding AddProfileCommand}" Margin="0,0,10,10" />
+                <Button Content="删除配置" Command="{Binding DeleteProfileCommand}" Margin="0,0,10,10" />
+                <Button Content="修改配置" Command="{Binding OpenEditProfileCommand}" Margin="0,0,10,10" />
+                <Button Content="刷新迁移" Command="{Binding RefreshCommand}" Margin="0,0,10,10" />
+                <Button Content="执行更新" Command="{Binding ExecuteUpdateCommand}" IsEnabled="{Binding IsIdle}" Margin="0,0,10,10" />
+                <Button Content="新增迁移" Command="{Binding ShowNewPanelCommand}" Margin="0,0,10,10" />
+                <Button Content="删除迁移" Command="{Binding RollbackSelectedCommand}" IsEnabled="{Binding CanRollback}" Margin="0,0,10,10" />
+              </WrapPanel>
+            </designer:ActionGroup.Body>
+          </designer:ActionGroup>
+        </designer:ActionBar.ActionsContent>
+      </designer:ActionBar>
+    </designer:ToolPageLayout.HeaderContent>
 
-        <WrapPanel>
-          <Button Content="新增配置" Command="{Binding AddProfileCommand}" Margin="0,0,10,10" />
-          <Button Content="删除配置" Command="{Binding DeleteProfileCommand}" Margin="0,0,10,10" />
-          <Button Content="修改配置" Command="{Binding OpenEditProfileCommand}" Margin="0,0,10,10" />
-          <Button Content="刷新迁移" Command="{Binding RefreshCommand}" Margin="0,0,10,10" />
-          <Button Content="执行更新" Command="{Binding ExecuteUpdateCommand}" IsEnabled="{Binding IsIdle}" Margin="0,0,10,10" />
-          <Button Content="新增迁移" Command="{Binding ShowNewPanelCommand}" Margin="0,0,10,10" />
-          <Button Content="删除迁移" Command="{Binding RollbackSelectedCommand}" IsEnabled="{Binding CanRollback}" Margin="0,0,10,10" />
-        </WrapPanel>
-      </StackPanel>
-    </Border>
-
-    <Grid Grid.Row="2" ColumnDefinitions="320,20,*">
-      <Border Grid.Column="0" Classes="card">
-        <StackPanel Spacing="12">
-          <TextBlock Classes="section-title" Text="配置列表" />
-          <ListBox ItemsSource="{Binding DbProfiles}"
-                   SelectedItem="{Binding ActiveProfile, Mode=TwoWay}">
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="models:DbConnectionProfile">
-                <Border Margin="0,0,0,10"
-                        Padding="14"
-                        CornerRadius="12"
-                        Background="{DynamicResource TranbokSurfaceBrush}">
-                  <StackPanel Spacing="4">
-                    <TextBlock Text="{Binding EffectiveProfileName}" FontWeight="SemiBold" />
-                    <TextBlock Classes="caption-muted" Text="{Binding DisplayName}" />
-                    <TextBlock Classes="caption-muted" Text="{Binding ContextName}" TextTrimming="CharacterEllipsis" />
-                  </StackPanel>
-                </Border>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-        </StackPanel>
-      </Border>
-
-      <Border Grid.Column="2" Classes="card">
-        <Grid RowDefinitions="Auto,16,Auto,16,*">
-          <StackPanel Spacing="10">
-            <TextBlock Classes="section-title" Text="活动配置" />
-            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-              <TextBlock Classes="field-label" Text="数据库类型" />
-              <TextBlock Grid.Column="1" Classes="field-value" Text="{Binding CurrentDatabaseTypeDisplay}" />
-              <TextBlock Grid.Row="1" Classes="field-label" Text="项目路径" />
-              <TextBlock Grid.Row="1" Grid.Column="1" Classes="field-value" Text="{Binding ProjectPath}" />
-              <TextBlock Grid.Row="2" Classes="field-label" Text="迁移文件" />
-              <ComboBox Grid.Row="2" Grid.Column="1"
-                        ItemsSource="{Binding Migrations}"
-                        SelectedItem="{Binding SelectedMigration, Mode=TwoWay}">
-                <ComboBox.ItemTemplate>
-                  <DataTemplate x:DataType="models:MigrationEntry">
-                    <TextBlock Text="{Binding FullName}" TextTrimming="CharacterEllipsis" />
+    <designer:ToolPageLayout.BodyContent>
+      <designer:SplitWorkspace LeftWidth="320"
+                               LeftMinWidth="260"
+                               RightMinWidth="420"
+                               GapWidth="20">
+        <designer:SplitWorkspace.LeftContent>
+          <Border Classes="card">
+            <StackPanel Spacing="12">
+              <designer:CardHeader Title="配置列表"
+                                   Description="管理当前可用的数据库连接与迁移配置。" />
+              <ListBox ItemsSource="{Binding DbProfiles}"
+                       SelectedItem="{Binding ActiveProfile, Mode=TwoWay}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="models:DbConnectionProfile">
+                    <designer:SelectableListCardItem Title="{Binding EffectiveProfileName}"
+                                                     Subtitle="{Binding DisplayName}"
+                                                     Meta="{Binding ContextName}"
+                                                     IsSelected="{Binding IsSelected}" />
                   </DataTemplate>
-                </ComboBox.ItemTemplate>
-              </ComboBox>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </StackPanel>
+          </Border>
+        </designer:SplitWorkspace.LeftContent>
+
+        <designer:SplitWorkspace.RightContent>
+          <Border Classes="card">
+            <Grid RowDefinitions="Auto,16,Auto,16,*">
+              <StackPanel Spacing="10">
+                <designer:CardHeader Title="活动配置"
+                                     Description="查看当前配置对应的数据库、项目路径与迁移文件。" />
+                <designer:PropertyGrid ItemsSource="{Binding ActiveProfileProperties}"
+                                       LabelColumnWidth="140" />
+              </StackPanel>
+
+              <designer:EditorHeader Grid.Row="2"
+                                     Title="{Binding SelectedMigrationFileName}">
+                <designer:EditorHeader.ActionContent>
+                  <Button Content="保存文件" Command="{Binding SaveEditorCommand}" IsEnabled="{Binding IsEditorDirty}" />
+                </designer:EditorHeader.ActionContent>
+              </designer:EditorHeader>
+
+              <TextBox Grid.Row="4"
+                       Text="{Binding EditorContent, Mode=TwoWay}"
+                       IsEnabled="{Binding HasSelectedMigration}"
+                       AcceptsReturn="True"
+                       AcceptsTab="True"
+                       TextWrapping="NoWrap"
+                       VerticalContentAlignment="Top"
+                       ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                       ScrollViewer.VerticalScrollBarVisibility="Auto"
+                       MinHeight="360">
+                <TextBox.KeyBindings>
+                  <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveEditorCommand}" />
+                </TextBox.KeyBindings>
+              </TextBox>
             </Grid>
-          </StackPanel>
+          </Border>
+        </designer:SplitWorkspace.RightContent>
+      </designer:SplitWorkspace>
+    </designer:ToolPageLayout.BodyContent>
 
-          <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-            <TextBlock Classes="field-value" Text="{Binding SelectedMigrationFileName}" />
-            <Button Grid.Column="1" Content="保存文件" Command="{Binding SaveEditorCommand}" IsEnabled="{Binding IsEditorDirty}" />
-          </Grid>
-
-          <TextBox Grid.Row="4"
-                   Text="{Binding EditorContent, Mode=TwoWay}"
-                   IsEnabled="{Binding HasSelectedMigration}"
-                   AcceptsReturn="True"
-                   AcceptsTab="True"
-                   TextWrapping="NoWrap"
-                   VerticalContentAlignment="Top"
-                   ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                   ScrollViewer.VerticalScrollBarVisibility="Auto"
-                   MinHeight="360">
-            <TextBox.KeyBindings>
-              <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveEditorCommand}" />
-            </TextBox.KeyBindings>
-          </TextBox>
-        </Grid>
-      </Border>
-    </Grid>
-
-    <Border Grid.Row="4" Classes="card">
-      <Grid RowDefinitions="Auto,12,*">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Classes="section-title" Text="执行日志" />
-          <Button Grid.Column="1" Content="清空日志" Command="{Binding ClearLogCommand}" />
-        </Grid>
-        <TextBox Grid.Row="2"
-                 Text="{Binding OutputLog}"
-                 IsReadOnly="True"
-                 AcceptsReturn="True"
-                 TextWrapping="Wrap"
-                 VerticalContentAlignment="Top"
-                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
-      </Grid>
-    </Border>
-  </Grid>
+    <designer:ToolPageLayout.FooterContent>
+      <designer:LogViewer Title="执行日志"
+                          Description="显示最近一次迁移执行与文件操作输出。"
+                          Text="{Binding OutputLog}">
+        <designer:LogViewer.ActionContent>
+          <Button Content="清空日志" Command="{Binding ClearLogCommand}" />
+        </designer:LogViewer.ActionContent>
+      </designer:LogViewer>
+    </designer:ToolPageLayout.FooterContent>
+  </designer:ToolPageLayout>
 </UserControl>
