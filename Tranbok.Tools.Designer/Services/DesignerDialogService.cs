@@ -130,7 +130,7 @@ public sealed class DesignerDialogService : IDesignerDialogService
             viewModel.Title, viewModel.Description,
             body,
             viewModel.ConfirmText,
-            string.IsNullOrWhiteSpace(viewModel.CancelText) ? "关闭" : viewModel.CancelText,
+            viewModel.CancelText ?? string.Empty,
             isConfirmAccent: true,
             onConfirm: () => dialog.Close(DesignerDialogResult<bool>.Confirmed(true)),
             onCancel: () => dialog.Close(DesignerDialogResult<bool>.Cancelled(false)),
@@ -340,36 +340,15 @@ public sealed class DesignerDialogService : IDesignerDialogService
         }
 
         // ── Buttons ───────────────────────────────────────────────────
-        var cancelBtn = new Button
+        // Only render a button when its text is non-empty.
+        // If both are empty fall back to a single "关闭" so the dialog is always dismissible.
+        bool showCancel  = !string.IsNullOrWhiteSpace(cancelText);
+        bool showConfirm = !string.IsNullOrWhiteSpace(confirmText);
+        if (!showCancel && !showConfirm)
         {
-            Content = string.IsNullOrWhiteSpace(cancelText) ? "关闭" : cancelText,
-            MinWidth = Math.Round(88 * scale),
-            Height = Math.Round(36 * scale),
-            Padding = new Thickness(Math.Round(16 * scale), 0),
-            Background = surfaceElevatedBrush,
-            Foreground = textPrimaryBrush,
-            BorderBrush = borderBrush
-        };
-        cancelBtn.Click += (_, _) => onCancel();
-
-        var confirmBtn = new Button
-        {
-            Content = string.IsNullOrWhiteSpace(confirmText) ? "确认" : confirmText,
-            MinWidth = Math.Round(88 * scale),
-            Height = Math.Round(36 * scale),
-            Padding = new Thickness(Math.Round(16 * scale), 0),
-            Background = isConfirmAccent ? accentBrush : surfaceElevatedBrush,
-            Foreground = isConfirmAccent ? accentFgBrush : textPrimaryBrush,
-            BorderBrush = isConfirmAccent ? accentBrush : borderBrush
-        };
-        confirmBtn.Click += (_, _) => onConfirm();
-
-        var footerSeparator = new Border
-        {
-            BorderBrush = borderBrush,
-            BorderThickness = new Thickness(0, 1, 0, 0),
-            Margin = new Thickness(0, Math.Round(16 * scale), 0, Math.Round(16 * scale))
-        };
+            showCancel = true;
+            cancelText = "关闭";
+        }
 
         var footer = new StackPanel
         {
@@ -377,8 +356,45 @@ public sealed class DesignerDialogService : IDesignerDialogService
             Spacing = Math.Round(8 * scale),
             HorizontalAlignment = HorizontalAlignment.Right
         };
-        footer.Children.Add(cancelBtn);
-        footer.Children.Add(confirmBtn);
+
+        if (showCancel)
+        {
+            var cancelBtn = new Button
+            {
+                Content = cancelText,
+                MinWidth = Math.Round(88 * scale),
+                Height = Math.Round(36 * scale),
+                Padding = new Thickness(Math.Round(16 * scale), 0),
+                Background = surfaceElevatedBrush,
+                Foreground = textPrimaryBrush,
+                BorderBrush = borderBrush
+            };
+            cancelBtn.Click += (_, _) => onCancel();
+            footer.Children.Add(cancelBtn);
+        }
+
+        if (showConfirm)
+        {
+            var confirmBtn = new Button
+            {
+                Content = confirmText,
+                MinWidth = Math.Round(88 * scale),
+                Height = Math.Round(36 * scale),
+                Padding = new Thickness(Math.Round(16 * scale), 0),
+                Background = isConfirmAccent ? accentBrush : surfaceElevatedBrush,
+                Foreground = isConfirmAccent ? accentFgBrush : textPrimaryBrush,
+                BorderBrush = isConfirmAccent ? accentBrush : borderBrush
+            };
+            confirmBtn.Click += (_, _) => onConfirm();
+            footer.Children.Add(confirmBtn);
+        }
+
+        var footerSeparator = new Border
+        {
+            BorderBrush = borderBrush,
+            BorderThickness = new Thickness(0, 1, 0, 0),
+            Margin = new Thickness(0, Math.Round(16 * scale), 0, Math.Round(16 * scale))
+        };
 
         // ── Content assembly ──────────────────────────────────────────
         // Layout: fixed header rows (Auto) + scrollable body (*) + fixed footer (Auto)
