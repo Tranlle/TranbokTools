@@ -701,8 +701,8 @@ public sealed partial class MigrationViewModel : PluginBaseViewModel
             Icon = DesignerDialogIcon.Info,
             Content = content,
             BaseFontSize = 13,
-            DialogWidth = 900,
-            DialogHeight = 680,
+            DialogWidth = 860,
+            DialogHeight = 0,
             LockSize = true,
             HideSystemDecorations = true
         });
