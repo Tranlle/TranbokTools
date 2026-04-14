@@ -1,4 +1,5 @@
 using Tranbok.Tools.Plugin.Core.Base;
+using Tranbok.Tools.Plugin.Core.Models;
 
 namespace Tranbok.Tools.Plugin.Migration;
 
@@ -6,7 +7,7 @@ public sealed class MigrationPluginMetadata : PluginBaseMetadata
 {
     public static MigrationPluginMetadata Instance { get; } = new();
 
-    public override string Id => "migration";
+    public override string Id => "tranbok.migration";
 
     public override string Name => "数据库迁移";
 
@@ -19,4 +20,13 @@ public sealed class MigrationPluginMetadata : PluginBaseMetadata
     public override string Icon => "Database";
 
     public override string Tags => "database,efcore,migration";
+
+    public override IReadOnlyList<PluginVariableDefinition> VariableDefinitions =>
+    [
+        new PluginVariableDefinition(
+            Key: "TRANBOK_DB_CONNECTION",
+            DefaultValue: "",
+            DisplayName: "数据库连接字符串",
+            Description: "执行迁移时传递给 dotnet ef 命令的数据库连接字符串。")
+    ];
 }

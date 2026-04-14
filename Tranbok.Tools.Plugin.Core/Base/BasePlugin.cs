@@ -20,6 +20,8 @@ public abstract class BasePlugin : IPlugin, IPluginViewProvider
         PluginIsolationMode isolationMode = PluginIsolationMode.AssemblyLoadContext)
         where TPlugin : IPlugin
     {
+        metadata.ValidateId();
+
         var pluginType = typeof(TPlugin);
         return new PluginDescriptor(
             metadata.Id,
@@ -32,7 +34,8 @@ public abstract class BasePlugin : IPlugin, IPluginViewProvider
             metadata.Icon,
             metadata.Tags,
             loadMode,
-            isolationMode);
+            isolationMode,
+            metadata.VariableDefinitions.Count > 0 ? metadata.VariableDefinitions : null);
     }
 
     public virtual async ValueTask InitializeAsync(PluginContext context, CancellationToken cancellationToken = default)

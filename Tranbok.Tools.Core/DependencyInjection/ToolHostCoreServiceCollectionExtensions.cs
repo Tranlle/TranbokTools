@@ -11,6 +11,7 @@ public static class ToolHostCoreServiceCollectionExtensions
         services.AddSingleton<IAppPreferencesService, AppPreferencesService>();
         services.AddSingleton<IPluginCatalogService, PluginCatalogService>();
         services.AddSingleton<IPluginDiscoveryService, PluginDiscoveryService>();
+        services.AddSingleton<IPluginVariableService, PluginVariableService>();
         return services;
     }
 }

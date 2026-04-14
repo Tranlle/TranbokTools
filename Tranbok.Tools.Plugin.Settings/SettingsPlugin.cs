@@ -45,7 +45,9 @@ public sealed class SettingsPlugin : BasePlugin, IVisualPlugin, IPluginHeaderAct
             var shellService = services.GetRequiredService<IAppShellService>();
             var themeService = services.GetRequiredService<IThemeService>();
             var preferencesService = services.GetRequiredService<IAppPreferencesService>();
-            _viewModel = new SettingsViewModel(shellService, themeService, preferencesService);
+            var pluginCatalog = services.GetRequiredService<IPluginCatalogService>();
+            var variableService = services.GetRequiredService<IPluginVariableService>();
+            _viewModel = new SettingsViewModel(shellService, themeService, preferencesService, pluginCatalog, variableService);
             _headerActions =
             [
                 new PluginHeaderAction("重置设置", _viewModel.ResetCommand),

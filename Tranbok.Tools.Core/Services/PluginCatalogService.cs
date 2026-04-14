@@ -18,8 +18,15 @@ public sealed class PluginCatalogService : IPluginCatalogService
         bool canDisable = true,
         string? builtInHint = null)
     {
-        if (_plugins.Any(x => x.Id == plugin.Descriptor.Id))
-            throw new InvalidOperationException($"Plugin '{plugin.Descriptor.Id}' is already registered.");
+        var id = plugin.Descriptor.Id;
+
+        if (_plugins.Any(x => x.Id == id))
+            throw new InvalidOperationException($"Plugin '{id}' is already registered.");
+
+        if (!id.Contains('.'))
+            throw new InvalidOperationException(
+                $"Plugin Id \"{id}\" does not follow the reverse-domain naming convention. " +
+                $"Expected at least two dot-separated segments, e.g. \"tranbok.my-plugin\".");
 
         var entry = new PluginEntry(plugin, enabledByDefault, isBuiltIn, canDisable, builtInHint);
         if (sort.HasValue)
