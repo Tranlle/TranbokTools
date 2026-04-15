@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
@@ -166,6 +167,20 @@ public partial class CardTextEditor : UserControl
             _editorBox.LostFocus += (_, _) => OnEditorLostFocus();
         }
 
+        // Add border-brush transition in code-behind to avoid Avalonia 12 XAML IL crash
+        // with BrushTransition declared directly in XAML.
+        if (_cardBorder is not null)
+        {
+            _cardBorder.Transitions =
+            [
+                new BrushTransition
+                {
+                    Property = Border.BorderBrushProperty,
+                    Duration  = TimeSpan.FromSeconds(0.15)
+                }
+            ];
+        }
+
         UpdateDescriptionVisibility();
     }
 
@@ -179,8 +194,8 @@ public partial class CardTextEditor : UserControl
 
     /// <summary>
     /// Looks up <paramref name="resourceKey"/> from application resources and applies it
-    /// to the card border.  The <see cref="BrushTransition"/> declared in XAML will
-    /// smoothly animate the colour change.
+    /// to the card border.  The <see cref="BrushTransition"/> registered in code-behind
+    /// smoothly animates the colour change.
     /// </summary>
     private void ApplyBorderBrush(string resourceKey)
     {

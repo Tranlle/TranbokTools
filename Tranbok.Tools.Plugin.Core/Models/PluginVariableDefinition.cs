@@ -8,4 +8,5 @@ public sealed record PluginVariableDefinition(
     string Key,
     string DefaultValue,
     string DisplayName = "",
-    string Description = "");
+    string Description = "",
+    bool IsEncrypted = false);

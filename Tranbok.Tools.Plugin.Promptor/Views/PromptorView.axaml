@@ -97,7 +97,6 @@
         <designer:SplitWorkspace.LeftContent>
           <designer:CardTextEditor
             Title="原始提示词"
-            Description="输入需要优化的提示词原文，Ctrl+Enter 快速优化。"
             Text="{Binding RawInput, Mode=TwoWay}"
             PlaceholderText="在此输入需要优化的提示词内容…"
             AcceptsReturn="True"
@@ -109,7 +108,6 @@
         <designer:SplitWorkspace.RightContent>
           <designer:CardTextEditor
             Title="优化结果"
-            Description="优化后的提示词将在此处流式显示。"
             Text="{Binding OptimizedOutput, Mode=TwoWay}"
             PlaceholderText="优化结果将在此处流式显示…"
             IsReadOnly="{Binding IsBusy}">

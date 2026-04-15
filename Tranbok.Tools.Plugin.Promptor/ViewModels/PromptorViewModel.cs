@@ -9,7 +9,6 @@ using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Tranbok.Tools.Core.Services;
 using Tranbok.Tools.Designer.Models;
 using Tranbok.Tools.Designer.Services;
 using Tranbok.Tools.Designer.ViewModels;
@@ -23,8 +22,7 @@ namespace Tranbok.Tools.Plugin.Promptor.ViewModels;
 public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
 {
     private readonly IDesignerDialogService? _dialogService;
-    private readonly IPluginVariableService? _variableService;
-    private readonly string _pluginId;
+    private IReadOnlyDictionary<string, string> _variables;
     private readonly PromptOptimizationService _service = new();
     private CancellationTokenSource? _cts;
     private CancellationTokenSource? _copyCts;
@@ -80,12 +78,10 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
 
     public PromptorViewModel(
         IDesignerDialogService? dialogService,
-        IPluginVariableService? variableService,
-        string pluginId)
+        IReadOnlyDictionary<string, string> variables)
     {
-        _dialogService   = dialogService;
-        _variableService = variableService;
-        _pluginId        = pluginId;
+        _dialogService = dialogService;
+        _variables     = variables;
 
         SelectedStrategyOption = StrategyOptions[0];
 
@@ -290,11 +286,14 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
         return new PromptorConfig(provider, endpoint, apiKey, model, maxTokens, temperature);
     }
 
-    private string GetVar(string key, string defaultValue)
+    /// <summary>当宿主注入新变量值时调用（例如用户保存设置后）。</summary>
+    public void UpdateVariables(IReadOnlyDictionary<string, string> values)
     {
-        if (_variableService is null) return defaultValue;
-        return _variableService.GetValue(_pluginId, key) ?? defaultValue;
+        _variables = values;
     }
+
+    private string GetVar(string key, string defaultValue)
+        => _variables.TryGetValue(key, out var v) && !string.IsNullOrEmpty(v) ? v : defaultValue;
 
     private async Task ShowAlertAsync(string title, string message)
     {

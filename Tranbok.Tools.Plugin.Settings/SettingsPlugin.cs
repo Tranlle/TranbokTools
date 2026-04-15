@@ -19,12 +19,6 @@ public sealed class SettingsPlugin : BasePlugin, IVisualPlugin, IPluginHeaderAct
 
     public override PluginDescriptor Descriptor { get; } = CreateDescriptor<SettingsPlugin>(SettingsPluginMetadata.Instance);
 
-    protected override ValueTask OnStartAsync(CancellationToken cancellationToken = default)
-    {
-        EnsureView();
-        return ValueTask.CompletedTask;
-    }
-
     public override Control GetMainView()
     {
         EnsureView();

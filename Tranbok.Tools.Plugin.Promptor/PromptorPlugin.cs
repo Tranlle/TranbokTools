@@ -1,27 +1,57 @@
 using Avalonia.Controls;
 using Microsoft.Extensions.DependencyInjection;
-using Tranbok.Tools.Core.Services;
 using Tranbok.Tools.Designer.Abstractions;
 using Tranbok.Tools.Designer.Services;
 using Tranbok.Tools.Plugin.Core;
+using Tranbok.Tools.Plugin.Core.Abstractions;
 using Tranbok.Tools.Plugin.Core.Base;
+using Tranbok.Tools.Plugin.Core.Tools;
 using Tranbok.Tools.Plugin.Promptor.ViewModels;
 using Tranbok.Tools.Plugin.Promptor.Views;
 
 namespace Tranbok.Tools.Plugin.Promptor;
 
-public sealed class PromptorPlugin : BasePlugin, IVisualPlugin
+public sealed class PromptorPlugin : BasePlugin, IVisualPlugin, IPluginVariableReceiver
 {
-    private PromptorView? _view;
+    private PromptorView?      _view;
     private PromptorViewModel? _viewModel;
 
-    public override PluginDescriptor Descriptor { get; } = CreateDescriptor<PromptorPlugin>(PromptorPluginMetadata.Instance);
+    // 最后一次注入后的解密明文变量（在视图创建前暂存）
+    private IReadOnlyDictionary<string, string> _resolvedVariables =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-    protected override ValueTask OnStartAsync(CancellationToken cancellationToken = default)
+    public override PluginDescriptor Descriptor { get; } =
+        CreateDescriptor<PromptorPlugin>(PromptorPluginMetadata.Instance);
+
+    // ── IPluginVariableReceiver ───────────────────────────────────────────────
+    //
+    //  基座调用此方法传入原始存储值（加密字段为密文）。
+    //  插件通过 Context.GetTool<IPluginEncryptionTool>() 获取基座加密 Tool 自行解密。
+
+    public void OnVariablesInjected(IReadOnlyDictionary<string, string> rawValues)
     {
-        EnsureView();
-        return ValueTask.CompletedTask;
+        var tool      = Context.GetTool<IPluginEncryptionTool>();
+        var resolved  = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var defs      = Descriptor.VariableDefinitions ?? [];
+
+        foreach (var def in defs)
+        {
+            rawValues.TryGetValue(def.Key, out var raw);
+
+            string value;
+            if (def.IsEncrypted && !string.IsNullOrEmpty(raw) && tool is not null)
+                value = tool.TryDecrypt(raw) ?? def.DefaultValue;
+            else
+                value = string.IsNullOrEmpty(raw) ? def.DefaultValue : raw;
+
+            resolved[def.Key] = value;
+        }
+
+        _resolvedVariables = resolved;
+        _viewModel?.UpdateVariables(resolved);
     }
+
+    // ── IVisualPlugin ─────────────────────────────────────────────────────────
 
     public override Control GetMainView()
     {
@@ -34,8 +64,7 @@ public sealed class PromptorPlugin : BasePlugin, IVisualPlugin
         if (_viewModel is null)
         {
             var dialogService = Context.Services?.GetService<IDesignerDialogService>();
-            var variableService = Context.Services?.GetService<IPluginVariableService>();
-            _viewModel = new PromptorViewModel(dialogService, variableService, Descriptor.Id);
+            _viewModel = new PromptorViewModel(dialogService, _resolvedVariables);
         }
 
         _view ??= new PromptorView { DataContext = _viewModel };

@@ -37,7 +37,8 @@ public sealed class PromptorPluginMetadata : PluginBaseMetadata
             Key: "PROMPTOR_API_KEY",
             DefaultValue: "",
             DisplayName: "API 密钥",
-            Description: "用于鉴权的 API Key，Ollama 等本地服务可留空"),
+            Description: "用于鉴权的 API Key，Ollama 等本地服务可留空",
+            IsEncrypted: true),
         new PluginVariableDefinition(
             Key: "PROMPTOR_MODEL_NAME",
             DefaultValue: "gpt-4o",

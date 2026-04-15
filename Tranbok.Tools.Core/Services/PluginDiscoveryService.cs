@@ -10,12 +10,17 @@ public sealed class PluginDiscoveryService : IPluginDiscoveryService
 {
     private readonly IPluginCatalogService _catalog;
     private readonly IServiceProvider _services;
+    private readonly IPluginVariableService _variableService;
     private readonly HostEnvironmentInfo _hostEnvironment;
 
-    public PluginDiscoveryService(IPluginCatalogService catalog, IServiceProvider services)
+    public PluginDiscoveryService(
+        IPluginCatalogService catalog,
+        IServiceProvider services,
+        IPluginVariableService variableService)
     {
-        _catalog = catalog;
-        _services = services;
+        _catalog        = catalog;
+        _services       = services;
+        _variableService = variableService;
         _hostEnvironment = new HostEnvironmentInfo(
             ToolHostConstants.HostName,
             ToolHostConstants.HostVersion,
@@ -119,6 +124,9 @@ public sealed class PluginDiscoveryService : IPluginDiscoveryService
             await plugin.InitializeAsync(context, cancellationToken);
             await plugin.StartAsync(cancellationToken);
             _catalog.Register(plugin, true, _catalog.Plugins.Count);
+
+            // 注册完成后立即注入变量
+            _variableService.InjectAll();
 
             var entry = _catalog.Get(plugin.Descriptor.Id);
             if (entry is not null)

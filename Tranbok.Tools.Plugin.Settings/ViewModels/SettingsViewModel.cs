@@ -2,7 +2,6 @@ using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.IO;
 using Tranbok.Tools.Core.Models;
 using Tranbok.Tools.Core.Services;
@@ -55,23 +54,24 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public ObservableCollection<DesignerOptionItem> ThemeOptions { get; } =
     [
-        new DesignerOptionItem { Key = "Dark", Label = "深色模式", Description = "适合低亮环境" },
+        new DesignerOptionItem { Key = "Dark",  Label = "深色模式", Description = "适合低亮环境" },
         new DesignerOptionItem { Key = "Light", Label = "浅色模式", Description = "适合明亮环境" }
     ];
 
-    public ObservableCollection<DesignerOptionItem> FontOptions { get; } = [];
+    public ObservableCollection<DesignerOptionItem> FontOptions    { get; } = [];
     public ObservableCollection<DesignerOptionItem> PaletteOptions { get; } = [];
     public ObservableCollection<DesignerOptionItem> AdvancedPaletteOptions { get; } = [];
 
-    public bool IsInterFontWarningVisible => SelectedFontOption?.Key == "inter";
+    public bool   IsInterFontWarningVisible => SelectedFontOption?.Key == "inter";
     public string FontWarningMessage => "Inter 在当前 Avalonia 版本下存在已知 TextBox 光标重合风险；若你看到输入框末尾光标压到最后一个字符，建议切回\u201c系统推荐\u201d。";
 
     // ── 插件变量管理 ──────────────────────────────────────────────────────────
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasPluginVariables))]
-    [NotifyPropertyChangedFor(nameof(PluginVariableSummary))]
-    private ObservableCollection<PluginVariableItemViewModel> pluginVariableItems = [];
+    // 内部扁平列表（保存/加载的基础数据源）
+    private readonly ObservableCollection<PluginVariableItemViewModel> _pluginVariableItems = [];
+
+    // 对外暴露的分组视图（每次列表变动后重建）
+    public IReadOnlyList<PluginVariableGroupViewModel> PluginVariableGroups { get; private set; } = [];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasAddFormKeyHints))]
@@ -91,19 +91,19 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public ObservableCollection<DesignerOptionItem> PluginOptions { get; } = [];
 
-    public bool HasPluginVariables => PluginVariableItems.Count > 0;
-    public bool HasAddFormKeyHints => AddFormKeyHints.Count > 0;
+    public bool   HasPluginVariables => _pluginVariableItems.Count > 0;
+    public bool   HasAddFormKeyHints => AddFormKeyHints.Count > 0;
 
-    public string PluginVariableSummary => PluginVariableItems.Count == 0
+    public string PluginVariableSummary => _pluginVariableItems.Count == 0
         ? "尚未配置任何插件变量"
-        : $"共 {PluginVariableItems.Count} 条变量，跨 {PluginVariableItems.Select(x => x.PluginId).Distinct().Count()} 个插件";
+        : $"共 {_pluginVariableItems.Count} 条变量，跨 {_pluginVariableItems.Select(x => x.PluginId).Distinct().Count()} 个插件";
 
     // ── 命令 ──────────────────────────────────────────────────────────────────
 
-    public IRelayCommand SaveCommand { get; }
-    public IRelayCommand ResetCommand { get; }
+    public IRelayCommand SaveCommand              { get; }
+    public IRelayCommand ResetCommand             { get; }
     public IRelayCommand ShowAddVariableFormCommand { get; }
-    public IRelayCommand AddVariableCommand { get; }
+    public IRelayCommand AddVariableCommand       { get; }
     public IRelayCommand CancelAddVariableCommand { get; }
     public IRelayCommand<DesignerOptionItem> FillKeyFromHintCommand { get; }
 
@@ -114,10 +114,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         IPluginCatalogService pluginCatalog,
         IPluginVariableService variableService)
     {
-        _themeService = themeService;
+        _themeService       = themeService;
         _preferencesService = preferencesService;
-        _pluginCatalog = pluginCatalog;
-        _variableService = variableService;
+        _pluginCatalog      = pluginCatalog;
+        _variableService    = variableService;
 
         var preferences = _preferencesService.Load();
 
@@ -125,32 +125,32 @@ public sealed partial class SettingsViewModel : ObservableObject
         InitializePluginOptions();
         LoadPluginVariables();
 
-        appName = shellService.AppName;
+        appName       = shellService.AppName;
         workspaceRoot = shellService.WorkspaceRoot;
         theme = themeService.CurrentTheme == ThemeVariant.Light ? "Light" : "Dark";
-        SelectedThemeOption = ThemeOptions.FirstOrDefault(option => option.Key == theme) ?? ThemeOptions.FirstOrDefault();
-        SelectedFontOption = FontOptions.FirstOrDefault(option => option.Key == preferences.FontOptionKey)
-            ?? FontOptions.FirstOrDefault(option => option.Key == themeService.CurrentFontOptionKey)
+        SelectedThemeOption = ThemeOptions.FirstOrDefault(o => o.Key == theme) ?? ThemeOptions.FirstOrDefault();
+        SelectedFontOption  = FontOptions.FirstOrDefault(o => o.Key == preferences.FontOptionKey)
+            ?? FontOptions.FirstOrDefault(o => o.Key == themeService.CurrentFontOptionKey)
             ?? FontOptions.FirstOrDefault();
 
         foreach (var palette in themeService.GetAvailablePalettes())
         {
             var option = new DesignerOptionItem
             {
-                Key = palette.Key,
+                Key   = palette.Key,
                 Label = palette.Label,
                 Description = palette.Description,
                 Value = palette
             };
-
-            if (palette.IsBuiltIn)
-                PaletteOptions.Add(option);
-            else
-                AdvancedPaletteOptions.Add(option);
+            if (palette.IsBuiltIn) PaletteOptions.Add(option);
+            else                   AdvancedPaletteOptions.Add(option);
         }
 
-        SelectedPaletteOption = PaletteOptions.FirstOrDefault(option => option.Key == themeService.CurrentPaletteKey) ?? PaletteOptions.FirstOrDefault();
-        SelectedAdvancedPaletteOption = AdvancedPaletteOptions.FirstOrDefault(option => option.Key == themeService.CurrentPaletteKey);
+        SelectedPaletteOption = PaletteOptions.FirstOrDefault(o => o.Key == themeService.CurrentPaletteKey)
+            ?? PaletteOptions.FirstOrDefault();
+        SelectedAdvancedPaletteOption = AdvancedPaletteOptions.FirstOrDefault(o => o.Key == themeService.CurrentPaletteKey);
+
+        // ── 命令实现 ─────────────────────────────────────────────────────────
 
         SaveCommand = new RelayCommand(() =>
         {
@@ -173,11 +173,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         ResetCommand = new RelayCommand(() =>
         {
             AppName = shellService.AppName;
-            Theme = "Dark";
-            SelectedThemeOption = ThemeOptions.FirstOrDefault(option => option.Key == Theme);
-            SelectedPaletteOption = PaletteOptions.FirstOrDefault(option => option.Key == "tranbok-dark") ?? PaletteOptions.FirstOrDefault();
+            Theme   = "Dark";
+            SelectedThemeOption  = ThemeOptions.FirstOrDefault(o => o.Key == Theme);
+            SelectedPaletteOption = PaletteOptions.FirstOrDefault(o => o.Key == "tranbok-dark") ?? PaletteOptions.FirstOrDefault();
             SelectedAdvancedPaletteOption = null;
-            SelectedFontOption = FontOptions.FirstOrDefault(option => option.Key == "system") ?? FontOptions.FirstOrDefault();
+            SelectedFontOption = FontOptions.FirstOrDefault(o => o.Key == "system") ?? FontOptions.FirstOrDefault();
             ShowAdvancedThemeSettings = false;
             WorkspaceRoot = shellService.WorkspaceRoot;
             UseWorkspaceForMigrations = true;
@@ -190,8 +190,9 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         ShowAddVariableFormCommand = new RelayCommand(() =>
         {
+            InitializePluginOptions();
             AddFormSelectedPlugin = PluginOptions.FirstOrDefault();
-            AddFormKey = string.Empty;
+            AddFormKey   = string.Empty;
             AddFormValue = string.Empty;
             ShowAddVariableForm = true;
         });
@@ -199,14 +200,13 @@ public sealed partial class SettingsViewModel : ObservableObject
         AddVariableCommand = new RelayCommand(() =>
         {
             var pluginId = AddFormSelectedPlugin?.Key ?? string.Empty;
-            var key = AddFormKey.Trim();
-            var value = AddFormValue;
+            var key      = AddFormKey.Trim();
+            var value    = AddFormValue;
 
             if (string.IsNullOrWhiteSpace(pluginId) || string.IsNullOrWhiteSpace(key))
                 return;
 
-            // 若该 pluginId + key 已存在则更新而非重复添加
-            var existing = PluginVariableItems.FirstOrDefault(x =>
+            var existing = _pluginVariableItems.FirstOrDefault(x =>
                 x.PluginId == pluginId && x.Key == key);
 
             if (existing is not null)
@@ -216,42 +216,42 @@ public sealed partial class SettingsViewModel : ObservableObject
             else
             {
                 var pluginName = AddFormSelectedPlugin?.Label ?? pluginId;
-                var hints = AddFormKeyHints;
-                var hint = hints.FirstOrDefault(h => h.Key == key);
-                var description = hint?.Description ?? string.Empty;
-                var defaultValue = hint?.Value as string ?? string.Empty;
+                var hint = AddFormKeyHints.FirstOrDefault(h => h.Key == key);
+                var hintData    = hint?.Value as KeyHintData;
+                var description = hintData?.Description ?? string.Empty;
+                var defaultValue = hintData?.DefaultValue ?? string.Empty;
+                var isEncrypted  = hintData?.IsEncrypted ?? false;
 
-                PluginVariableItems.Add(new PluginVariableItemViewModel(
-                    pluginId: pluginId,
-                    pluginName: pluginName,
-                    key: key,
-                    value: value,
-                    defaultValue: defaultValue,
-                    description: description,
+                _pluginVariableItems.Add(new PluginVariableItemViewModel(
+                    pluginId:      pluginId,
+                    pluginName:    pluginName,
+                    key:           key,
+                    value:         value,
+                    defaultValue:  defaultValue,
+                    description:   description,
                     isFromMetadata: hint is not null,
-                    onDelete: RemovePluginVariable));
+                    isEncrypted:   isEncrypted,
+                    onDelete:      RemovePluginVariable));
             }
 
-            OnPropertyChanged(nameof(HasPluginVariables));
-            OnPropertyChanged(nameof(PluginVariableSummary));
-
+            RebuildGroups();
             ShowAddVariableForm = false;
-            AddFormKey = string.Empty;
+            AddFormKey   = string.Empty;
             AddFormValue = string.Empty;
         });
 
         CancelAddVariableCommand = new RelayCommand(() =>
         {
             ShowAddVariableForm = false;
-            AddFormKey = string.Empty;
+            AddFormKey   = string.Empty;
             AddFormValue = string.Empty;
         });
 
         FillKeyFromHintCommand = new RelayCommand<DesignerOptionItem>(hint =>
         {
             if (hint is null) return;
-            AddFormKey = hint.Key;
-            AddFormValue = hint.Value as string ?? string.Empty;
+            AddFormKey   = hint.Key;
+            AddFormValue = hint.Value is KeyHintData d ? d.DefaultValue : hint.Value as string ?? string.Empty;
         });
     }
 
@@ -264,23 +264,20 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnAddFormSelectedPluginChanged(DesignerOptionItem? value)
     {
         AddFormKeyHints.Clear();
-
-        if (value is null)
-            return;
+        if (value is null) return;
 
         var entry = _pluginCatalog.Plugins.FirstOrDefault(p => p.Id == value.Key);
         var definitions = entry?.Plugin.Descriptor.VariableDefinitions;
-        if (definitions is null)
-            return;
+        if (definitions is null) return;
 
         foreach (var def in definitions)
         {
             AddFormKeyHints.Add(new DesignerOptionItem
             {
-                Key = def.Key,
+                Key   = def.Key,
                 Label = string.IsNullOrWhiteSpace(def.DisplayName) ? def.Key : def.DisplayName,
                 Description = def.Description,
-                Value = def.DefaultValue
+                Value = new KeyHintData(def.DefaultValue, def.Description, def.IsEncrypted)
             });
         }
 
@@ -289,52 +286,102 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private void RemovePluginVariable(PluginVariableItemViewModel item)
     {
-        PluginVariableItems.Remove(item);
+        _pluginVariableItems.Remove(item);
+        RebuildGroups();
+    }
+
+    private void RebuildGroups()
+    {
+        PluginVariableGroups = _pluginVariableItems
+            .GroupBy(x => x.PluginId)
+            .OrderBy(g => g.First().PluginName)
+            .Select(g => new PluginVariableGroupViewModel
+            {
+                PluginId   = g.Key,
+                PluginName = g.First().PluginName,
+                Variables  = g.ToList()
+            })
+            .ToList();
+
+        OnPropertyChanged(nameof(PluginVariableGroups));
         OnPropertyChanged(nameof(HasPluginVariables));
         OnPropertyChanged(nameof(PluginVariableSummary));
     }
 
     private void LoadPluginVariables()
     {
-        PluginVariableItems.Clear();
+        _pluginVariableItems.Clear();
         var store = _variableService.Load();
 
+        // 先将已保存的条目加载进来（GetValue 自动解密加密字段）
         foreach (var entry in store.Entries)
         {
-            var plugin = _pluginCatalog.Plugins.FirstOrDefault(p => p.Id == entry.PluginId);
+            var plugin     = _pluginCatalog.Plugins.FirstOrDefault(p => p.Id == entry.PluginId);
             var pluginName = plugin?.Name ?? entry.PluginId;
             var def = plugin?.Plugin.Descriptor.VariableDefinitions?
                 .FirstOrDefault(d => d.Key == entry.Key);
 
-            PluginVariableItems.Add(new PluginVariableItemViewModel(
-                pluginId: entry.PluginId,
-                pluginName: pluginName,
-                key: entry.Key,
-                value: entry.Value,
-                defaultValue: def?.DefaultValue ?? string.Empty,
-                description: def?.Description ?? string.Empty,
+            // 使用 GetValue 以便加密字段自动解密
+            var displayValue = _variableService.GetValue(entry.PluginId, entry.Key) ?? entry.Value;
+
+            _pluginVariableItems.Add(new PluginVariableItemViewModel(
+                pluginId:      entry.PluginId,
+                pluginName:    pluginName,
+                key:           entry.Key,
+                value:         displayValue,
+                defaultValue:  def?.DefaultValue ?? string.Empty,
+                description:   def?.Description  ?? string.Empty,
                 isFromMetadata: def is not null,
-                onDelete: RemovePluginVariable));
+                isEncrypted:   def?.IsEncrypted ?? entry.IsEncrypted,
+                onDelete:      RemovePluginVariable));
         }
 
-        OnPropertyChanged(nameof(HasPluginVariables));
-        OnPropertyChanged(nameof(PluginVariableSummary));
+        // 再将元数据声明的但尚未存储的变量补充进来（以默认值填充）
+        foreach (var pluginEntry in _pluginCatalog.Plugins)
+        {
+            var definitions = pluginEntry.Plugin.Descriptor.VariableDefinitions;
+            if (definitions is null or { Count: 0 }) continue;
+
+            foreach (var def in definitions)
+            {
+                var alreadyLoaded = _pluginVariableItems.Any(x =>
+                    x.PluginId == pluginEntry.Id &&
+                    string.Equals(x.Key, def.Key, StringComparison.OrdinalIgnoreCase));
+
+                if (alreadyLoaded) continue;
+
+                _pluginVariableItems.Add(new PluginVariableItemViewModel(
+                    pluginId:      pluginEntry.Id,
+                    pluginName:    pluginEntry.Name,
+                    key:           def.Key,
+                    value:         def.DefaultValue,
+                    defaultValue:  def.DefaultValue,
+                    description:   def.Description,
+                    isFromMetadata: true,
+                    isEncrypted:   def.IsEncrypted,
+                    onDelete:      RemovePluginVariable));
+            }
+        }
+
+        RebuildGroups();
     }
 
     private void SavePluginVariables()
     {
         var store = new PluginVariableStore
         {
-            Entries = PluginVariableItems
+            Entries = _pluginVariableItems
                 .Select(item => new PluginVariableEntry
                 {
-                    PluginId = item.PluginId,
-                    Key = item.Key,
-                    Value = item.Value
+                    PluginId    = item.PluginId,
+                    Key         = item.Key,
+                    Value       = item.Value,       // 明文；加密在 Service.Save 内完成
+                    IsEncrypted = item.IsEncrypted
                 })
                 .ToList()
         };
-        _variableService.Save(store);
+        _variableService.Save(store);       // Save 内部按 IsEncrypted 加密后写盘
+        _variableService.InjectAll();       // 保存后重新注入所有插件
     }
 
     private void InitializePluginOptions()
@@ -344,7 +391,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             PluginOptions.Add(new DesignerOptionItem
             {
-                Key = plugin.Id,
+                Key   = plugin.Id,
                 Label = plugin.Name,
                 Description = plugin.Description
             });
@@ -356,23 +403,28 @@ public sealed partial class SettingsViewModel : ObservableObject
         FontOptions.Clear();
         FontOptions.Add(new DesignerOptionItem
         {
-            Key = "system",
+            Key   = "system",
             Label = "系统推荐（按平台自动选择）",
             Description = "Windows 使用 Segoe UI，macOS 使用系统字体，Linux 使用 Noto Sans / DejaVu Sans 回退链。"
         });
         FontOptions.Add(new DesignerOptionItem
         {
-            Key = "inter",
+            Key   = "inter",
             Label = "Inter",
             Description = "跨平台一致，但在当前 Avalonia 版本下可能出现输入光标与末尾字符重合问题。"
         });
 
         if (OperatingSystem.IsWindows())
         {
-            FontOptions.Add(new DesignerOptionItem { Key = "segoe-ui", Label = "Segoe UI", Description = "Windows 默认界面字体。" });
+            FontOptions.Add(new DesignerOptionItem { Key = "segoe-ui",          Label = "Segoe UI",          Description = "Windows 默认界面字体。" });
             FontOptions.Add(new DesignerOptionItem { Key = "microsoft-yahei-ui", Label = "Microsoft YaHei UI", Description = "适合中文界面的 Windows 字体。" });
-            FontOptions.Add(new DesignerOptionItem { Key = "arial", Label = "Arial", Description = "经典西文字体。" });
-            FontOptions.Add(new DesignerOptionItem { Key = "bahnschrift", Label = "Bahnschrift", Description = "Windows 自带现代无衬线字体。" });
+            FontOptions.Add(new DesignerOptionItem { Key = "arial",              Label = "Arial",             Description = "经典西文字体。" });
+            FontOptions.Add(new DesignerOptionItem { Key = "bahnschrift",        Label = "Bahnschrift",       Description = "Windows 自带现代无衬线字体。" });
         }
     }
+
+    // ── 嵌套辅助类型 ──────────────────────────────────────────────────────────
+
+    /// <summary>存储在 AddFormKeyHints 的 Value 中，携带默认值、说明和加密标志。</summary>
+    private sealed record KeyHintData(string DefaultValue, string Description, bool IsEncrypted);
 }
