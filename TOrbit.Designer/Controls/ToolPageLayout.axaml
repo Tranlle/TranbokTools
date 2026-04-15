@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:TOrbit.Designer.Controls"
+             x:Class="TOrbit.Designer.Controls.ToolPageLayout"
+             x:DataType="controls:ToolPageLayout"
+             x:Name="Root">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="{Binding HeaderBodyGapHeight, ElementName=Root}" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="{Binding BodyFooterGapHeight, ElementName=Root}" />
+      <RowDefinition Height="{Binding FooterHeight, ElementName=Root}" />
+    </Grid.RowDefinitions>
+
+    <ContentPresenter Content="{Binding HeaderContent, ElementName=Root}" />
+    <ContentPresenter Grid.Row="2"
+                      Content="{Binding BodyContent, ElementName=Root}" />
+    <ContentPresenter Grid.Row="4"
+                      Content="{Binding FooterContent, ElementName=Root}" />
+  </Grid>
+</UserControl>

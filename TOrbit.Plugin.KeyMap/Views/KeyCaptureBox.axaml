@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:TOrbit.Plugin.KeyMap.Views"
+             x:Class="TOrbit.Plugin.KeyMap.Views.KeyCaptureBox"
+             x:DataType="controls:KeyCaptureBox"
+             x:Name="Root">
+  <Border x:Name="CaptureContainer"
+          Background="{DynamicResource TOrbitSurfaceElevatedBrush}"
+          BorderBrush="{DynamicResource TOrbitBorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource TOrbitRadiusSmall}"
+          Padding="10,6"
+          MinWidth="160"
+          MinHeight="36"
+          Cursor="Hand"
+          PointerPressed="OnPointerPressed">
+    <Border.Styles>
+      <Style Selector="Border.capturing">
+        <Setter Property="BorderBrush" Value="{DynamicResource TOrbitAccentBrush}" />
+        <Setter Property="Background" Value="{DynamicResource TOrbitAccentSubtleBrush}" />
+      </Style>
+    </Border.Styles>
+
+    <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+      <TextBlock x:Name="DisplayText"
+                 Grid.Column="0"
+                 VerticalAlignment="Center"
+                 FontFamily="{DynamicResource TOrbitMonoFontFamily}"
+                 FontSize="13" />
+      <TextBlock x:Name="HintText"
+                 Grid.Column="1"
+                 Classes="caption-muted"
+                 Text="点击录入"
+                 FontSize="11"
+                 VerticalAlignment="Center"
+                 IsVisible="True" />
+    </Grid>
+  </Border>
+</UserControl>

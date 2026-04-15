@@ -1,0 +1,13 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="using:TOrbit.Designer.ViewModels.Pages"
+             xmlns:designer="using:TOrbit.Designer.Controls"
+             x:Class="TOrbit.Designer.Views.DefaultPluginView"
+             x:DataType="viewModels:DefaultPluginViewModel">
+  <designer:SectionCard Title="{Binding Title}">
+    <designer:SectionCard.Body>
+      <designer:EmptyState Title="{Binding Title}"
+                           Description="{Binding Description}" />
+    </designer:SectionCard.Body>
+  </designer:SectionCard>
+</UserControl>

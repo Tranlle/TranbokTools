@@ -1,0 +1,108 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:TOrbit.Designer.Controls"
+             x:Class="TOrbit.Designer.Controls.CardTextEditor"
+             x:DataType="controls:CardTextEditor"
+             x:Name="Root">
+
+  <UserControl.Styles>
+    <!-- Override global fixed-height constraints for the inner editor TextBox -->
+    <Style Selector="TextBox#EditorBox">
+      <Setter Property="Height" Value="NaN" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="VerticalContentAlignment" Value="Top" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <!-- Override global TextPresenter margin: follow the same pattern as global style
+         (Padding=0, all spacing via PART_TextPresenter Margin) -->
+    <Style Selector="TextBox#EditorBox /template/ TextPresenter#PART_TextPresenter">
+      <Setter Property="Margin" Value="18,12,16,12" />
+    </Style>
+    <!-- Watermark (placeholder) style — same Margin as TextPresenter so they stay aligned -->
+    <Style Selector="TextBox#EditorBox /template/ TextBlock#PART_Watermark">
+      <Setter Property="Foreground" Value="{DynamicResource TOrbitTextMutedBrush}" />
+      <Setter Property="FontStyle" Value="Italic" />
+      <Setter Property="Margin" Value="18,12,16,12" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- ── Outer card shell ─────────────────────────────────────────────────── -->
+  <Border x:Name="CardBorder"
+          Background="{DynamicResource TOrbitSurfaceBrush}"
+          BorderBrush="{DynamicResource TOrbitBorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource TOrbitRadiusLarge}"
+          BoxShadow="0 2 16 0 #1A000000"
+          ClipToBounds="True">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+      <!-- ── Header ──────────────────────────────────────────────────────── -->
+      <Grid Grid.Row="0"
+            ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="12"
+            MinHeight="36"
+            Margin="18,10,16,10">
+
+        <!-- Gradient accent pill — identical to SectionHeader -->
+        <Border Grid.Column="0"
+                Width="3"
+                CornerRadius="{DynamicResource TOrbitRadiusFull}"
+                Margin="0,2">
+          <Border.Background>
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+              <GradientStop Color="#5B8CFF" Offset="0" />
+              <GradientStop Color="#38D9C0" Offset="1" />
+            </LinearGradientBrush>
+          </Border.Background>
+        </Border>
+
+        <!-- Title + optional description -->
+        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+          <TextBlock Classes="subsection-title"
+                     Text="{Binding Title, ElementName=Root}" />
+          <TextBlock x:Name="DescriptionText"
+                     Classes="caption-muted"
+                     Text="{Binding Description, ElementName=Root}"
+                     TextWrapping="Wrap"
+                     MinHeight="0" />
+        </StackPanel>
+
+        <!-- Right action slot -->
+        <ContentPresenter Grid.Column="2"
+                          Content="{Binding ActionContent, ElementName=Root}"
+                          VerticalAlignment="Center" />
+      </Grid>
+
+      <!-- ── Horizontal divider ──────────────────────────────────────────── -->
+      <Border Grid.Row="1"
+              BorderBrush="{DynamicResource TOrbitBorderBrush}"
+              BorderThickness="0,1,0,0" />
+
+      <!-- ── Editor area — fills remaining * space, TextBox scrolls inside ── -->
+      <TextBox Grid.Row="2"
+               x:Name="EditorBox"
+               Text="{Binding Text, ElementName=Root, Mode=TwoWay}"
+               PlaceholderText="{Binding PlaceholderText, ElementName=Root}"
+               IsReadOnly="{Binding IsReadOnly, ElementName=Root}"
+               AcceptsReturn="{Binding AcceptsReturn, ElementName=Root}"
+               AcceptsTab="{Binding AcceptsTab, ElementName=Root}"
+               TextWrapping="Wrap"
+               CaretBrush="{DynamicResource TOrbitAccentBrush}"
+               SelectionBrush="{DynamicResource TOrbitAccentSubtleBrush}"
+               SelectionForegroundBrush="{DynamicResource TOrbitAccentSubtleForegroundBrush}"
+               ScrollViewer.VerticalScrollBarVisibility="Auto"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <TextBox.KeyBindings>
+          <KeyBinding Gesture="Ctrl+Return"
+                      Command="{Binding SubmitCommand, ElementName=Root}" />
+        </TextBox.KeyBindings>
+      </TextBox>
+
+    </Grid>
+  </Border>
+</UserControl>

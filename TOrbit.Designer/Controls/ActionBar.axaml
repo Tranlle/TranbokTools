@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:TOrbit.Designer.Controls"
+             x:Class="TOrbit.Designer.Controls.ActionBar"
+             x:DataType="controls:ActionBar"
+             x:Name="Root">
+  <!-- Outer border provides card shape + shadow -->
+  <Border Background="{DynamicResource TOrbitSurfaceElevatedBrush}"
+          BorderBrush="{DynamicResource TOrbitBorderBrush}"
+          BorderThickness="1"
+          CornerRadius="{DynamicResource TOrbitRadiusLarge}"
+          BoxShadow="0 2 16 0 #1A000000"
+          Padding="0">
+    <StackPanel Spacing="0">
+
+      <!-- Accent stripe — gradient from blue to teal -->
+      <Border Height="3" CornerRadius="15,15,0,0">
+        <Border.Background>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+            <GradientStop Color="#4B7AFF" Offset="0.0" />
+            <GradientStop Color="#5B8CFF" Offset="0.35" />
+            <GradientStop Color="#3EC3E8" Offset="0.75" />
+            <GradientStop Color="#38D9C0" Offset="1.0" />
+          </LinearGradientBrush>
+        </Border.Background>
+      </Border>
+
+      <!-- Content area -->
+      <StackPanel Spacing="14" Margin="20,12,20,14">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+          <ContentPresenter Content="{Binding LeadContent, ElementName=Root}"
+                            VerticalAlignment="Center" />
+          <StackPanel Grid.Column="1"
+                      Orientation="Horizontal"
+                      Spacing="12"
+                      VerticalAlignment="Center">
+            <TextBlock Text="{Binding StatusText, ElementName=Root}"
+                       Foreground="{DynamicResource TOrbitTextSecondaryBrush}"
+                       FontSize="12"
+                       VerticalAlignment="Center" />
+            <ProgressBar Width="120"
+                         Height="4"
+                         IsIndeterminate="True"
+                         IsVisible="{Binding IsBusy, ElementName=Root}"
+                         Foreground="{DynamicResource TOrbitAccentBrush}" />
+          </StackPanel>
+        </Grid>
+        <ContentPresenter Content="{Binding ActionsContent, ElementName=Root}" />
+      </StackPanel>
+
+    </StackPanel>
+  </Border>
+</UserControl>

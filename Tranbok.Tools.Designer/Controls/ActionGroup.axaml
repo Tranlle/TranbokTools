@@ -1,8 +1,0 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:controls="using:Tranbok.Tools.Designer.Controls"
-             x:Class="Tranbok.Tools.Designer.Controls.ActionGroup"
-             x:DataType="controls:ActionGroup"
-             x:Name="Root">
-  <ContentPresenter Content="{Binding Body, ElementName=Root}" />
-</UserControl>

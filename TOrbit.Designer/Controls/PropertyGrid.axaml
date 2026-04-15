@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:TOrbit.Designer.Controls"
+             xmlns:models="using:TOrbit.Designer.Models"
+             xmlns:system="clr-namespace:System;assembly=mscorlib"
+             x:Class="TOrbit.Designer.Controls.PropertyGrid"
+             x:DataType="controls:PropertyGrid"
+             x:Name="Root">
+  <UserControl.DataTemplates>
+    <DataTemplate DataType="{x:Type system:String}">
+      <TextBlock Text="{Binding}"
+                 TextWrapping="NoWrap"
+                 TextTrimming="CharacterEllipsis"
+                 ToolTip.Tip="{Binding}"
+                 VerticalAlignment="Center" />
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <ItemsControl ItemsSource="{Binding ItemsSource, ElementName=Root}">
+    <ItemsControl.ItemsPanel>
+      <ItemsPanelTemplate>
+        <StackPanel Spacing="0" />
+      </ItemsPanelTemplate>
+    </ItemsControl.ItemsPanel>
+    <ItemsControl.ItemTemplate>
+      <DataTemplate x:DataType="models:PropertyGridItem">
+        <Border BorderBrush="{DynamicResource TOrbitBorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="0,10">
+          <Grid ColumnDefinitions="Auto,*"
+                ColumnSpacing="16">
+            <TextBlock Classes="field-label"
+                       Width="{Binding LabelColumnWidth, ElementName=Root}"
+                       Text="{Binding Label}"
+                       FontSize="12" />
+            <ContentControl Grid.Column="1"
+                            Content="{Binding Value}"
+                            VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+      </DataTemplate>
+    </ItemsControl.ItemTemplate>
+  </ItemsControl>
+</UserControl>

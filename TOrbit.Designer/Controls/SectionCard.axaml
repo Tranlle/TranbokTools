@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:TOrbit.Designer.Controls"
+             x:Class="TOrbit.Designer.Controls.SectionCard"
+             x:DataType="controls:SectionCard"
+             x:Name="Root">
+  <Border Classes="card">
+    <StackPanel Spacing="0">
+
+      <!-- Header: gradient left bar + title/description -->
+      <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,12">
+
+        <!-- Left accent bar — gradient from blue to teal -->
+        <Border Grid.Column="0"
+                Width="3"
+                CornerRadius="999"
+                Margin="0,2,12,2">
+          <Border.Background>
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+              <GradientStop Color="#5B8CFF" Offset="0" />
+              <GradientStop Color="#38D9C0" Offset="1" />
+            </LinearGradientBrush>
+          </Border.Background>
+        </Border>
+
+        <!-- Title + Description -->
+        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+          <TextBlock Classes="section-title"
+                     Text="{Binding Title, ElementName=Root}" />
+          <TextBlock Classes="caption-muted"
+                     MinHeight="0"
+                     Text="{Binding Description, ElementName=Root}"
+                     TextWrapping="Wrap" />
+        </StackPanel>
+
+      </Grid>
+
+      <!-- Separator -->
+      <Border BorderBrush="{DynamicResource TOrbitBorderBrush}"
+              BorderThickness="0,1,0,0"
+              Margin="0,0,0,16" />
+
+      <!-- Body -->
+      <ContentPresenter Content="{Binding Body, ElementName=Root}" />
+
+    </StackPanel>
+  </Border>
+</UserControl>

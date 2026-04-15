@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:TOrbit.Designer.Controls"
+             x:Class="TOrbit.Designer.Controls.ListCardItem"
+             x:DataType="controls:ListCardItem"
+             x:Name="Root">
+  <Border Margin="0,0,0,10"
+          Padding="14"
+          CornerRadius="12"
+          Background="{DynamicResource TOrbitSurfaceBrush}">
+    <StackPanel Spacing="4">
+      <TextBlock Text="{Binding Title, ElementName=Root}"
+                 FontWeight="SemiBold" />
+      <TextBlock Classes="caption-muted"
+                 Text="{Binding Subtitle, ElementName=Root}" />
+      <TextBlock Classes="caption-muted"
+                 Text="{Binding Meta, ElementName=Root}"
+                 TextTrimming="CharacterEllipsis" />
+    </StackPanel>
+  </Border>
+</UserControl>
