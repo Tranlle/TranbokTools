@@ -125,8 +125,8 @@ public sealed class PluginDiscoveryService : IPluginDiscoveryService
             await plugin.StartAsync(cancellationToken);
             _catalog.Register(plugin, true, _catalog.Plugins.Count);
 
-            // 注册完成后立即注入变量
-            _variableService.InjectAll();
+            // 注册完成后只注入当前插件，避免随插件数量增长的 O(n²) 全量遍历
+            _variableService.InjectOne(plugin);
 
             var entry = _catalog.Get(plugin.Descriptor.Id);
             if (entry is not null)

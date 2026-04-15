@@ -6,6 +6,8 @@ namespace Tranbok.Tools.Core.Services;
 public sealed class PluginCatalogService : IPluginCatalogService
 {
     private readonly ObservableCollection<PluginEntry> _plugins = [];
+    // O(1) Id 查找索引，与 _plugins 保持同步
+    private readonly Dictionary<string, PluginEntry> _index = new(StringComparer.OrdinalIgnoreCase);
 
     public IReadOnlyList<PluginEntry> Plugins => _plugins;
     public IEnumerable<PluginEntry> EnabledPlugins => _plugins.Where(x => x.IsEnabled);
@@ -20,7 +22,7 @@ public sealed class PluginCatalogService : IPluginCatalogService
     {
         var id = plugin.Descriptor.Id;
 
-        if (_plugins.Any(x => x.Id == id))
+        if (_index.ContainsKey(id))
             throw new InvalidOperationException($"Plugin '{id}' is already registered.");
 
         if (!id.Contains('.'))
@@ -32,7 +34,8 @@ public sealed class PluginCatalogService : IPluginCatalogService
         if (sort.HasValue)
             entry.Sort = sort.Value;
         _plugins.Add(entry);
+        _index[id] = entry;
     }
 
-    public PluginEntry? Get(string id) => _plugins.FirstOrDefault(x => x.Id == id);
+    public PluginEntry? Get(string id) => _index.TryGetValue(id, out var e) ? e : null;
 }

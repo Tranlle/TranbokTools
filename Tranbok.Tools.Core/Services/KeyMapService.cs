@@ -7,6 +7,11 @@ public sealed class KeyMapService : IKeyMapService
     private readonly IStorageService _storage;
     private readonly List<KeyMapEntry> _entries = [];
 
+    // Dispatch 索引：EffectiveKey（不区分大小写）→ 已启用的 KeyMapEntry
+    // 在 Register / Load / Reset / Save 之后调用 RebuildIndex() 维护
+    private readonly Dictionary<string, KeyMapEntry> _dispatchIndex =
+        new(StringComparer.OrdinalIgnoreCase);
+
     public KeyMapService(IStorageService storage) => _storage = storage;
 
     public IReadOnlyList<KeyMapEntry> Entries => _entries;
@@ -36,6 +41,8 @@ public sealed class KeyMapService : IKeyMapService
             IsEnabled   = existing?.IsEnabled ?? true,
             CustomKey   = existing?.CustomKey
         });
+
+        RebuildIndex();
     }
 
     public bool Dispatch(string keyString)
@@ -43,19 +50,11 @@ public sealed class KeyMapService : IKeyMapService
         if (string.IsNullOrWhiteSpace(keyString))
             return false;
 
-        foreach (var entry in _entries)
-        {
-            if (!entry.IsEnabled || entry.Handler is null)
-                continue;
+        if (!_dispatchIndex.TryGetValue(keyString, out var entry))
+            return false;
 
-            if (string.Equals(entry.EffectiveKey, keyString, StringComparison.OrdinalIgnoreCase))
-            {
-                entry.Handler.Invoke();
-                return true;
-            }
-        }
-
-        return false;
+        entry.Handler?.Invoke();
+        return true;
     }
 
     public void Load()
@@ -68,6 +67,7 @@ public sealed class KeyMapService : IKeyMapService
             entry.CustomKey = row.CustomKey;
             entry.IsEnabled = row.IsEnabled;
         }
+        RebuildIndex();
     }
 
     public void Save()
@@ -78,6 +78,8 @@ public sealed class KeyMapService : IKeyMapService
             CustomKey = e.CustomKey,
             IsEnabled = e.IsEnabled
         }));
+        // Save 可能由 UI 在修改 CustomKey 后调用，索引需同步
+        RebuildIndex();
     }
 
     public void Reset(string? id = null)
@@ -96,6 +98,18 @@ public sealed class KeyMapService : IKeyMapService
             if (entry is null) return;
             entry.CustomKey = null;
             entry.IsEnabled = true;
+        }
+        RebuildIndex();
+    }
+
+    private void RebuildIndex()
+    {
+        _dispatchIndex.Clear();
+        foreach (var entry in _entries)
+        {
+            if (!entry.IsEnabled || entry.Handler is null) continue;
+            // 同一按键有多个绑定时，先注册的优先（与原线性扫描行为一致）
+            _dispatchIndex.TryAdd(entry.EffectiveKey, entry);
         }
     }
 }

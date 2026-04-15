@@ -18,4 +18,9 @@ public interface IPluginVariableService
     /// <see cref="Tranbok.Tools.Plugin.Core.Abstractions.IPluginVariableReceiver"/> 的插件。
     /// </summary>
     void InjectAll();
+
+    /// <summary>
+    /// 仅将指定插件的变量注入到该插件（插件刚注册时调用，避免全量遍历）。
+    /// </summary>
+    void InjectOne(IPlugin plugin);
 }

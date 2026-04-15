@@ -29,15 +29,19 @@ public sealed class PluginVariableService : IPluginVariableService
     {
         var store = new PluginVariableStore();
 
+        // 一次查询取回所有 vars:* 作用域的行，按 scope 分组，避免 N 次往返
+        const string prefix = "vars:";
+        var allRows = _storage.GetAllKvWithMetaByPrefix(prefix);
+
         foreach (var plugin in _pluginCatalog.Plugins)
         {
             var defs = plugin.Plugin.Descriptor.VariableDefinitions;
             if (defs is null || defs.Count == 0) continue;
 
-            var scope   = ScopeFor(plugin.Id);
-            var dbRows  = _storage.GetAllKvWithMeta(scope)
-                .ToDictionary(r => r.Key, StringComparer.OrdinalIgnoreCase);
+            var scope = ScopeFor(plugin.Id);
+            if (!allRows.TryGetValue(scope, out var rows)) continue;
 
+            var dbRows = rows.ToDictionary(r => r.Key, StringComparer.OrdinalIgnoreCase);
             foreach (var def in defs)
             {
                 if (dbRows.TryGetValue(def.Key, out var row))
@@ -63,22 +67,21 @@ public sealed class PluginVariableService : IPluginVariableService
     {
         ArgumentNullException.ThrowIfNull(store);
 
-        foreach (var entry in store.Entries)
-        {
-            var value = entry.Value;
-            if (entry.IsEncrypted && !string.IsNullOrEmpty(value))
+        // 先完成加密，再批量写入（单事务，单次锁进出）
+        IEnumerable<(string scope, string key, string? value, bool isEncrypted)> batch =
+            store.Entries.Select(entry =>
             {
-                var tool = _toolRegistry.GetTool<IPluginEncryptionTool>(entry.PluginId);
-                if (tool is not null)
-                    value = tool.Encrypt(value);
-            }
+                string? value = entry.Value;
+                if (entry.IsEncrypted && !string.IsNullOrEmpty(value))
+                {
+                    var tool = _toolRegistry.GetTool<IPluginEncryptionTool>(entry.PluginId);
+                    if (tool is not null)
+                        value = tool.Encrypt(value);
+                }
+                return (scope: ScopeFor(entry.PluginId), key: entry.Key, value: (string?)value, isEncrypted: entry.IsEncrypted);
+            });
 
-            _storage.SetKvWithMeta(
-                ScopeFor(entry.PluginId),
-                entry.Key,
-                value,
-                entry.IsEncrypted);
-        }
+        _storage.SetKvBatch(batch);
     }
 
     // ── GetValue（Settings UI 用，自动解密加密字段）───────────────────────────
@@ -86,9 +89,7 @@ public sealed class PluginVariableService : IPluginVariableService
     public string? GetValue(string pluginId, string key)
     {
         var scope = ScopeFor(pluginId);
-        var rows  = _storage.GetAllKvWithMeta(scope);
-        var row   = rows.FirstOrDefault(r =>
-            string.Equals(r.Key, key, StringComparison.OrdinalIgnoreCase));
+        var row   = _storage.GetKvWithMeta(scope, key); // 单行查询，不拉全表
 
         if (row is not null)
         {
@@ -103,13 +104,15 @@ public sealed class PluginVariableService : IPluginVariableService
         return GetDefaultValue(pluginId, key);
     }
 
-    // ── InjectAll（将原始存储值推送给插件，由插件自行解密）──────────────────────
+    // ── InjectAll / InjectOne（将原始存储值推送给插件，由插件自行解密）──────────
 
     public void InjectAll()
     {
         foreach (var entry in _pluginCatalog.Plugins)
             InjectToPlugin(entry.Plugin);
     }
+
+    public void InjectOne(IPlugin plugin) => InjectToPlugin(plugin);
 
     // ── Private ───────────────────────────────────────────────────────────────
 

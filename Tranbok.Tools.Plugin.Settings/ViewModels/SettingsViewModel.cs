@@ -313,7 +313,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _pluginVariableItems.Clear();
         var store = _variableService.Load();
 
-        // 先将已保存的条目加载进来（GetValue 自动解密加密字段）
+        // 先将已保存的条目加载进来
         foreach (var entry in store.Entries)
         {
             var plugin     = _pluginCatalog.Plugins.FirstOrDefault(p => p.Id == entry.PluginId);
@@ -321,8 +321,10 @@ public sealed partial class SettingsViewModel : ObservableObject
             var def = plugin?.Plugin.Descriptor.VariableDefinitions?
                 .FirstOrDefault(d => d.Key == entry.Key);
 
-            // 使用 GetValue 以便加密字段自动解密
-            var displayValue = _variableService.GetValue(entry.PluginId, entry.Key) ?? entry.Value;
+            // 只有加密字段才需要调 GetValue（走解密路径）；明文直接用已加载的值
+            var displayValue = entry.IsEncrypted
+                ? _variableService.GetValue(entry.PluginId, entry.Key) ?? entry.Value
+                : entry.Value;
 
             _pluginVariableItems.Add(new PluginVariableItemViewModel(
                 pluginId:      entry.PluginId,
@@ -336,6 +338,11 @@ public sealed partial class SettingsViewModel : ObservableObject
                 onDelete:      RemovePluginVariable));
         }
 
+        // 用 HashSet 做 O(1) 去重检查，避免对每个 def 都线性扫描 _pluginVariableItems
+        var loadedKeys = _pluginVariableItems
+            .Select(x => (x.PluginId, x.Key.ToLowerInvariant()))
+            .ToHashSet();
+
         // 再将元数据声明的但尚未存储的变量补充进来（以默认值填充）
         foreach (var pluginEntry in _pluginCatalog.Plugins)
         {
@@ -344,11 +351,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
             foreach (var def in definitions)
             {
-                var alreadyLoaded = _pluginVariableItems.Any(x =>
-                    x.PluginId == pluginEntry.Id &&
-                    string.Equals(x.Key, def.Key, StringComparison.OrdinalIgnoreCase));
-
-                if (alreadyLoaded) continue;
+                if (!loadedKeys.Add((pluginEntry.Id, def.Key.ToLowerInvariant())))
+                    continue; // Add 返回 false 说明已存在，跳过
 
                 _pluginVariableItems.Add(new PluginVariableItemViewModel(
                     pluginId:      pluginEntry.Id,
