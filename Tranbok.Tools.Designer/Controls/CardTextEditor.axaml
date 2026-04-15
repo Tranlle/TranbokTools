@@ -10,21 +10,23 @@
     <Style Selector="TextBox#EditorBox">
       <Setter Property="Height" Value="NaN" />
       <Setter Property="MinHeight" Value="0" />
-      <Setter Property="Padding" Value="18,8,16,8" />
+      <Setter Property="Padding" Value="0" />
       <Setter Property="VerticalContentAlignment" Value="Top" />
       <Setter Property="VerticalAlignment" Value="Stretch" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="CornerRadius" Value="0" />
     </Style>
-    <!-- Collapse the extra TextPresenter margin added by the global style -->
+    <!-- Override global TextPresenter margin: follow the same pattern as global style
+         (Padding=0, all spacing via PART_TextPresenter Margin) -->
     <Style Selector="TextBox#EditorBox /template/ TextPresenter#PART_TextPresenter">
-      <Setter Property="Margin" Value="0" />
+      <Setter Property="Margin" Value="18,12,16,12" />
     </Style>
-    <!-- Watermark (placeholder) style for the editor -->
+    <!-- Watermark (placeholder) style — same Margin as TextPresenter so they stay aligned -->
     <Style Selector="TextBox#EditorBox /template/ TextBlock#PART_Watermark">
       <Setter Property="Foreground" Value="{DynamicResource TranbokTextMutedBrush}" />
       <Setter Property="FontStyle" Value="Italic" />
+      <Setter Property="Margin" Value="18,12,16,12" />
     </Style>
   </UserControl.Styles>
 
@@ -43,6 +45,7 @@
       <Grid Grid.Row="0"
             ColumnDefinitions="Auto,*,Auto"
             ColumnSpacing="12"
+            MinHeight="36"
             Margin="18,10,16,10">
 
         <!-- Gradient accent pill — identical to SectionHeader -->

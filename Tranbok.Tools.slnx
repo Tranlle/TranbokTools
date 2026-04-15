@@ -7,4 +7,5 @@
   <Project Path="Tranbok.Tools.Plugin.PluginManager/Tranbok.Tools.Plugin.PluginManager.csproj" />
   <Project Path="Tranbok.Tools.Plugin.Promptor/Tranbok.Tools.Plugin.Promptor.csproj" />
   <Project Path="Tranbok.Tools.Plugin.Settings/Tranbok.Tools.Plugin.Settings.csproj" />
+  <Project Path="Tranbok.Tools.Plugin.KeyMap/Tranbok.Tools.Plugin.KeyMap.csproj" />
 </Solution>

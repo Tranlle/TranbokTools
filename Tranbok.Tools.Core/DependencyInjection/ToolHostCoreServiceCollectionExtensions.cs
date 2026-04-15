@@ -15,6 +15,7 @@ public static class ToolHostCoreServiceCollectionExtensions
         services.AddSingleton<IPluginDiscoveryService, PluginDiscoveryService>();
         services.AddSingleton<IPluginVariableService, PluginVariableService>();
         services.AddSingleton<IPluginToolRegistry, PluginToolRegistry>();
+        services.AddSingleton<IKeyMapService, KeyMapService>();
         return services;
     }
 }

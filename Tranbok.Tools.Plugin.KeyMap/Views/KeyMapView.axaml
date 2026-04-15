@@ -1,0 +1,220 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Tranbok.Tools.Plugin.KeyMap.ViewModels"
+             xmlns:views="using:Tranbok.Tools.Plugin.KeyMap.Views"
+             xmlns:designer="using:Tranbok.Tools.Designer.Controls"
+             x:Class="Tranbok.Tools.Plugin.KeyMap.Views.KeyMapView"
+             x:DataType="vm:KeyMapViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="Button.binding-item">
+      <Setter Property="Padding" Value="10,8" />
+      <Setter Property="Margin" Value="0,0,0,2" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="{DynamicResource TranbokRadiusSmall}" />
+    </Style>
+    <Style Selector="Button.binding-item:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource TranbokSurfaceElevatedBrush}" />
+    </Style>
+    <Style Selector="Button.binding-item.selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource TranbokAccentSubtleBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <designer:ToolPageLayout HeaderBodyGapHeight="0"
+                           BodyFooterGapHeight="0"
+                           FooterHeight="0">
+    <designer:ToolPageLayout.BodyContent>
+      <designer:SplitWorkspace LeftWidth="300"
+                               LeftMinWidth="220"
+                               RightMinWidth="360">
+
+        <!-- ═══ 左侧：搜索 + 分组列表 ═══════════════════════════════════ -->
+        <designer:SplitWorkspace.LeftContent>
+          <Grid RowDefinitions="Auto,12,*">
+
+            <TextBox Grid.Row="0"
+                     Classes="form-control"
+                     Text="{Binding SearchText, Mode=TwoWay}"
+                     PlaceholderText="搜索快捷键..."
+                     FontSize="13" />
+
+            <ScrollViewer Grid.Row="2"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+              <ItemsControl ItemsSource="{Binding Groups}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:KeyMapGroupViewModel">
+                    <StackPanel Margin="0,0,0,16">
+
+                      <!-- 组标题 -->
+                      <StackPanel Orientation="Horizontal"
+                                  Spacing="8"
+                                  Margin="2,0,2,6">
+                        <TextBlock Text="{Binding PluginName}"
+                                   Classes="subsection-title"
+                                   VerticalAlignment="Center" />
+                        <Border Background="{DynamicResource TranbokSurfaceElevatedBrush}"
+                                BorderBrush="{DynamicResource TranbokBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="7,2">
+                          <TextBlock Text="{Binding Count}"
+                                     FontSize="11"
+                                     Foreground="{DynamicResource TranbokTextSecondaryBrush}"
+                                     VerticalAlignment="Center" />
+                        </Border>
+                      </StackPanel>
+
+                      <!-- 条目列表 -->
+                      <ItemsControl ItemsSource="{Binding Bindings}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:KeyMapBindingViewModel">
+                            <Button Classes="binding-item"
+                                    Classes.selected="{Binding IsSelected}"
+                                    Command="{Binding $parent[UserControl].((vm:KeyMapViewModel)DataContext).SelectBindingCommand}"
+                                    CommandParameter="{Binding}">
+                              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding Name}"
+                                           FontSize="13"
+                                           VerticalAlignment="Center" />
+                                <designer:StatusBadge Grid.Column="1"
+                                                      Text="{Binding CurrentKeyDisplay}"
+                                                      BadgeBackground="{DynamicResource TranbokSurfaceElevatedBrush}"
+                                                      BadgeForeground="{DynamicResource TranbokTextMutedBrush}"
+                                                      VerticalAlignment="Center" />
+                              </Grid>
+                            </Button>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+
+          </Grid>
+        </designer:SplitWorkspace.LeftContent>
+
+        <!-- ═══ 右侧：详情 / 编辑面板 ══════════════════════════════════ -->
+        <designer:SplitWorkspace.RightContent>
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
+            <Panel>
+
+              <!-- 空状态 -->
+              <designer:EmptyState IsVisible="{Binding SelectedBinding, Converter={x:Static ObjectConverters.IsNull}}"
+                                   Title="选择一条快捷键"
+                                   Description="从左侧列表中选择一条快捷键以查看和编辑其绑定。" />
+
+              <!-- 详情面板 — 用 ContentControl+DataTemplate 提供正确的编译绑定类型 -->
+              <ContentControl Content="{Binding SelectedBinding}"
+                              IsVisible="{Binding SelectedBinding, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <ContentControl.ContentTemplate>
+                  <DataTemplate x:DataType="vm:KeyMapBindingViewModel">
+                    <StackPanel Spacing="16">
+
+                      <!-- 基本信息卡 -->
+                      <designer:SectionCard Title="快捷键信息"
+                                            Description="查看此快捷键的来源与用途说明。">
+                        <designer:SectionCard.Body>
+                          <Grid ColumnDefinitions="92,*"
+                                RowDefinitions="Auto,Auto,Auto"
+                                RowSpacing="10"
+                                ColumnSpacing="12">
+
+                            <TextBlock Grid.Row="0" Classes="field-label" Text="名称" />
+                            <TextBlock Grid.Row="0" Grid.Column="1"
+                                       Classes="field-value"
+                                       Text="{Binding Name}"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock Grid.Row="1" Classes="field-label" Text="所属插件" />
+                            <TextBlock Grid.Row="1" Grid.Column="1"
+                                       Classes="field-value"
+                                       Text="{Binding PluginName}" />
+
+                            <TextBlock Grid.Row="2" Classes="field-label" Text="说明" />
+                            <TextBlock Grid.Row="2" Grid.Column="1"
+                                       Classes="field-value"
+                                       Text="{Binding Description}"
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                          </Grid>
+                        </designer:SectionCard.Body>
+                      </designer:SectionCard>
+
+                      <!-- 键绑定编辑卡 -->
+                      <designer:SectionCard Title="键绑定设置"
+                                            Description="点击绑定输入框后按下新的键组合以重新绑定；按 Esc 取消。">
+                        <designer:SectionCard.Body>
+                          <StackPanel Spacing="16">
+
+                            <designer:FormField Label="当前绑定">
+                              <designer:FormField.Body>
+                                <views:KeyCaptureBox Value="{Binding CurrentKeyDisplay, Mode=TwoWay}" />
+                              </designer:FormField.Body>
+                            </designer:FormField>
+
+                            <designer:FormField Label="默认绑定">
+                              <designer:FormField.Body>
+                                <TextBlock Classes="field-value"
+                                           FontFamily="{DynamicResource TranbokMonoFontFamily}"
+                                           Text="{Binding DefaultKey}"
+                                           VerticalAlignment="Center" />
+                              </designer:FormField.Body>
+                            </designer:FormField>
+
+                            <!-- 修改标记 -->
+                            <Border IsVisible="{Binding IsModified}"
+                                    Background="{DynamicResource TranbokBadgeInfoBackgroundBrush}"
+                                    BorderBrush="{DynamicResource TranbokBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="{DynamicResource TranbokRadiusSmall}"
+                                    Padding="12,8">
+                              <TextBlock Text="此条目已被修改，与默认绑定不同。"
+                                         Foreground="{DynamicResource TranbokBadgeInfoForegroundBrush}"
+                                         FontSize="12"
+                                         TextWrapping="Wrap" />
+                            </Border>
+
+                            <!-- 启用 + 重置 -->
+                            <Grid ColumnDefinitions="Auto,8,Auto,*,Auto" VerticalAlignment="Center">
+                              <TextBlock Grid.Column="0"
+                                         Text="启用"
+                                         FontSize="14"
+                                         VerticalAlignment="Center" />
+                              <ToggleSwitch Grid.Column="2"
+                                            IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                            VerticalAlignment="Center" />
+                              <Button Grid.Column="4"
+                                      Command="{Binding ResetCommand}"
+                                      Content="重置默认"
+                                      VerticalAlignment="Center" />
+                            </Grid>
+
+                          </StackPanel>
+                        </designer:SectionCard.Body>
+                      </designer:SectionCard>
+
+                    </StackPanel>
+                  </DataTemplate>
+                </ContentControl.ContentTemplate>
+              </ContentControl>
+
+            </Panel>
+          </ScrollViewer>
+        </designer:SplitWorkspace.RightContent>
+
+      </designer:SplitWorkspace>
+    </designer:ToolPageLayout.BodyContent>
+  </designer:ToolPageLayout>
+
+</UserControl>

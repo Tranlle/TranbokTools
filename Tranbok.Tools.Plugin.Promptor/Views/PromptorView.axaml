@@ -89,7 +89,7 @@
 
     <!-- ═══ 主体工作区 ════════════════════════════════════════════════ -->
     <designer:ToolPageLayout.BodyContent>
-      <designer:SplitWorkspace LeftWidth="480"
+      <designer:SplitWorkspace LeftWidth="*"
                                LeftMinWidth="300"
                                RightMinWidth="300">
 
@@ -110,7 +110,7 @@
             Title="优化结果"
             Text="{Binding OptimizedOutput, Mode=TwoWay}"
             PlaceholderText="优化结果将在此处流式显示…"
-            IsReadOnly="{Binding IsBusy}">
+            IsReadOnly="True">
             <designer:CardTextEditor.ActionContent>
               <Button Content="清空"
                       Command="{Binding ClearOutputCommand}"
