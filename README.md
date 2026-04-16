@@ -37,6 +37,7 @@ T-Orbit 不是单一业务应用，而是一个可扩展的桌面工具宿主：
 - [Screenshots / UI Preview](#screenshots--ui-preview)
 - [Roadmap / TODO](#roadmap--todo)
 - [开发插件](#开发插件)
+- [Code Agent Prompt](#code-agent-prompt)
 - [测试](#测试)
 - [文档](#文档)
 - [许可证](#许可证)
@@ -253,6 +254,125 @@ public sealed class MyPlugin : BasePlugin, IVisualPlugin
     }
 }
 ```
+
+## Code Agent Prompt
+
+下面提供两套可直接复制给 Code Agent / AI 编码助手的插件生成提示词模板。
+
+### 模板 A：最小插件
+
+适合场景：
+
+- 新建一个结构简单的工具页
+- 只需要单页 UI 和少量命令
+- 不依赖复杂变量、日志链路或外部进程
+
+```text
+你正在为 T-Orbit 项目创建一个“最小可运行插件”。
+
+目标：
+- 按照 T-Orbit 当前架构生成一个简单、可运行、可在导航中出现的插件
+- 插件只需要一个主页面、一个 ViewModel 和基础元数据
+- 代码必须遵循当前仓库命名、目录结构、契约和 UI 风格
+
+项目约束：
+- 宿主为 .NET 10 + Avalonia 12
+- 插件基于 TOrbit.Plugin.Core、TOrbit.Designer 和现有插件模式
+- Visual 类型插件必须继承 BasePlugin，并实现 IVisualPlugin
+- 不要额外创建无必要的 service / helper / manager 抽象
+- 文案简洁、产品化，不要出现 AI 模板腔
+- UI 遵循当前工作台风格，不要生成传统卡片拼贴式后台页面
+
+必须生成：
+1. 插件主类
+2. 元数据类
+3. ViewModel
+4. View
+5. plugin.json
+6. .csproj
+
+实现要求：
+- plugin.json 中的 id、entryAssembly、entryType 必须与代码保持一致
+- 如果是外部插件，输出目录指向 TOrbit.App/bin/$(Configuration)/net10.0/plugins/<PluginName>/
+- 优先参考现有插件实现方式
+- 优先复用 ToolPageLayout、SectionCard、EmptyState、StatusBadge 等已有控件
+- 命令优先使用 CommunityToolkit.Mvvm
+
+交付要求：
+- 列出新增文件
+- 简述插件入口、页面结构和主要命令
+- 给出验证方式，例如 dotnet build 和运行后检查导航项是否出现
+```
+
+### 模板 B：复杂工具型插件
+
+适合场景：
+
+- 需要左右工作区、编辑器、日志区或状态栏
+- 需要插件变量、文件选择、外部进程、本地 IO、网络调用
+- 需要更完整的交互流程和页面状态管理
+
+```text
+你正在为 T-Orbit 项目创建一个“复杂工具型插件”。
+
+目标：
+- 生成一个符合 T-Orbit 当前架构的完整工具插件
+- 插件可能包含工作区布局、状态区、日志区、变量注入、文件操作或外部命令调用
+- 输出代码必须与当前仓库风格一致，不能引入另一套设计语言或工程习惯
+
+项目约束：
+- 宿主是 .NET 10 + Avalonia 12
+- 插件基于 TOrbit.Plugin.Core、TOrbit.Designer、CommunityToolkit.Mvvm
+- Visual 类型插件应继承 BasePlugin，并实现 IVisualPlugin
+- 如果插件需要变量，使用 PluginVariableDefinition + IPluginVariableReceiver
+- 如果页面需要左右分栏，优先使用 SplitWorkspace
+- 如果页面需要顶部概览或状态区，遵循当前工作台式框架
+- 如果需要日志输出，优先复用 LogViewer 或现有日志弹窗模式
+- 如果需要编辑器，优先复用 CardTextEditor 或已有编辑器模式
+- UI 不要做成传统后台卡片堆砌；每个区块只承担一个职责
+
+必须生成：
+1. 插件主类
+2. 元数据类
+3. ViewModel
+4. View
+5. plugin.json
+6. .csproj
+7. 如有必要的模型类
+8. 如确实需要的服务类
+
+实现要求：
+- 先阅读仓库中最相近的插件，再决定结构
+- plugin.json 的 id、entryAssembly、entryType 必须与代码保持一致
+- 外部插件必须确保程序集输出到 TOrbit.App/bin/$(Configuration)/net10.0/plugins/<PluginName>/
+- 如果需要变量，补充变量定义、默认值和注入逻辑
+- 如果涉及文件或进程操作，给出清晰错误处理和状态反馈
+- 如果涉及危险操作，界面中应有明确确认或提醒
+- 命名直接、清晰，不要引入无关抽象层
+
+交付要求：
+- 列出新增和修改的文件
+- 说明插件入口、页面分区、主要命令、变量和外部依赖
+- 说明为什么采用当前布局和控件
+- 给出验证步骤，例如：
+  - dotnet build
+  - 运行宿主后检查导航项
+  - 检查变量注入
+  - 检查日志 / 文件 / 命令执行链路
+```
+
+### 使用建议
+
+1. 先选择最接近场景的模板。
+2. 在模板前面补一句你的目标，例如“请创建一个文件哈希计算插件”或“请创建一个 API 调试工具插件”。
+3. 明确是否需要这些能力：
+   - 插件变量
+   - 左右分栏
+   - 日志区
+   - 文件选择器
+   - 外部进程调用
+   - 头部动作区
+4. 如果仓库里已经有相似插件，要求 Code Agent 先参考相似实现再生成。
 
 ## 测试
 
