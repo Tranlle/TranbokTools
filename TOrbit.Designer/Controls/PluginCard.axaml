@@ -5,19 +5,17 @@
              x:DataType="controls:PluginCard"
              x:Name="Root">
   <Border Classes="card">
-    <StackPanel Spacing="16">
-      <StackPanel Spacing="8">
+    <StackPanel Spacing="14">
+      <StackPanel Spacing="6">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
           <TextBlock Text="{Binding Title, ElementName=Root}"
                      Classes="section-title"
                      VerticalAlignment="Center" />
-
           <ContentPresenter Grid.Column="1"
                             Content="{Binding HeaderContent, ElementName=Root}"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center" />
         </Grid>
-
         <TextBlock Classes="caption-muted"
                    Text="{Binding Description, ElementName=Root}"
                    TextWrapping="Wrap" />

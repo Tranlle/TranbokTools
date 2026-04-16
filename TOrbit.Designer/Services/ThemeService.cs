@@ -26,11 +26,10 @@ public sealed class ThemeService : IThemeService
 
     public void SetTheme(ThemeVariant themeVariant)
     {
-        var palette = _registry.Find(_currentPaletteKey) ?? _registry.GetAll().FirstOrDefault();
+        var palette = ResolvePaletteForTheme(themeVariant);
         if (palette is null)
             return;
 
-        palette.BaseVariant = themeVariant;
         ApplyPalette(palette);
     }
 
@@ -63,7 +62,9 @@ public sealed class ThemeService : IThemeService
         if (Application.Current is null)
             return;
 
-        Application.Current.Resources["TranbokAppFontFamily"] = ResolveFontFamily(_currentFontOptionKey);
+        var fontFamily = ResolveFontFamily(_currentFontOptionKey);
+        //Application.Current.Resources["TranbokAppFontFamily"] = fontFamily;
+        Application.Current.Resources["TOrbitAppFontFamily"] = fontFamily;
     }
 
     public FontFamily ResolveFontFamily(string fontOptionKey)
@@ -90,6 +91,54 @@ public sealed class ThemeService : IThemeService
         SetPalette(paletteKey);
     }
 
+    private ThemePalette? ResolvePaletteForTheme(ThemeVariant themeVariant)
+    {
+        var current = _registry.Find(_currentPaletteKey) ?? _registry.GetAll().FirstOrDefault();
+        if (current is null)
+            return null;
+
+        var targetSuffix = themeVariant == ThemeVariant.Light ? "-light" : "-dark";
+        var oppositeSuffix = themeVariant == ThemeVariant.Light ? "-dark" : "-light";
+
+        if (_currentPaletteKey.EndsWith(oppositeSuffix, StringComparison.OrdinalIgnoreCase))
+        {
+            var familyKey = _currentPaletteKey[..^oppositeSuffix.Length] + targetSuffix;
+            var matched = _registry.Find(familyKey);
+            if (matched is not null)
+                return matched;
+        }
+
+        if (current.BaseVariant == themeVariant)
+            return current;
+
+        return new ThemePalette
+        {
+            Key = current.Key,
+            Label = current.Label,
+            Description = current.Description,
+            Source = current.Source,
+            IsBuiltIn = current.IsBuiltIn,
+            BaseVariant = themeVariant,
+            AccentBrush = current.AccentBrush,
+            AccentForegroundBrush = current.AccentForegroundBrush,
+            AccentSubtleBrush = current.AccentSubtleBrush,
+            AccentSubtleForegroundBrush = current.AccentSubtleForegroundBrush,
+            BackgroundBrush = current.BackgroundBrush,
+            SurfaceBrush = current.SurfaceBrush,
+            SurfaceElevatedBrush = current.SurfaceElevatedBrush,
+            BorderBrush = current.BorderBrush,
+            TextPrimaryBrush = current.TextPrimaryBrush,
+            TextSecondaryBrush = current.TextSecondaryBrush,
+            TextMutedBrush = current.TextMutedBrush,
+            BadgeSuccessBackgroundBrush = current.BadgeSuccessBackgroundBrush,
+            BadgeSuccessForegroundBrush = current.BadgeSuccessForegroundBrush,
+            BadgeWarningBackgroundBrush = current.BadgeWarningBackgroundBrush,
+            BadgeWarningForegroundBrush = current.BadgeWarningForegroundBrush,
+            BadgeDangerBackgroundBrush = current.BadgeDangerBackgroundBrush,
+            BadgeDangerForegroundBrush = current.BadgeDangerForegroundBrush
+        };
+    }
+
     private static void ApplyBrush(string key, string color)
     {
         if (Application.Current is null)
@@ -106,23 +155,42 @@ public sealed class ThemeService : IThemeService
         Application.Current.RequestedThemeVariant = palette.BaseVariant;
         _currentPaletteKey = palette.Key;
 
-        ApplyBrush("TranbokAccentBrush", palette.AccentBrush);
-        ApplyBrush("TranbokAccentForegroundBrush", palette.AccentForegroundBrush);
-        ApplyBrush("TranbokAccentSubtleBrush", palette.AccentSubtleBrush);
-        ApplyBrush("TranbokAccentSubtleForegroundBrush", palette.AccentSubtleForegroundBrush);
-        ApplyBrush("TranbokBackgroundBrush", palette.BackgroundBrush);
-        ApplyBrush("TranbokSurfaceBrush", palette.SurfaceBrush);
-        ApplyBrush("TranbokSurfaceElevatedBrush", palette.SurfaceElevatedBrush);
-        ApplyBrush("TranbokBorderBrush", palette.BorderBrush);
-        ApplyBrush("TranbokTextPrimaryBrush", palette.TextPrimaryBrush);
-        ApplyBrush("TranbokTextSecondaryBrush", palette.TextSecondaryBrush);
-        ApplyBrush("TranbokTextMutedBrush", palette.TextMutedBrush);
-        ApplyBrush("TranbokBadgeSuccessBackgroundBrush", palette.BadgeSuccessBackgroundBrush);
-        ApplyBrush("TranbokBadgeSuccessForegroundBrush", palette.BadgeSuccessForegroundBrush);
-        ApplyBrush("TranbokBadgeWarningBackgroundBrush", palette.BadgeWarningBackgroundBrush);
-        ApplyBrush("TranbokBadgeWarningForegroundBrush", palette.BadgeWarningForegroundBrush);
-        ApplyBrush("TranbokBadgeDangerBackgroundBrush", palette.BadgeDangerBackgroundBrush);
-        ApplyBrush("TranbokBadgeDangerForegroundBrush", palette.BadgeDangerForegroundBrush);
+        //ApplyBrush("TranbokAccentBrush", palette.AccentBrush);
+        ApplyBrush("TOrbitAccentBrush", palette.AccentBrush);
+        //ApplyBrush("TranbokAccentForegroundBrush", palette.AccentForegroundBrush);
+        ApplyBrush("TOrbitAccentForegroundBrush", palette.AccentForegroundBrush);
+        //ApplyBrush("TranbokAccentSubtleBrush", palette.AccentSubtleBrush);
+        ApplyBrush("TOrbitAccentSubtleBrush", palette.AccentSubtleBrush);
+        //ApplyBrush("TranbokAccentSubtleForegroundBrush", palette.AccentSubtleForegroundBrush);
+        ApplyBrush("TOrbitAccentSubtleForegroundBrush", palette.AccentSubtleForegroundBrush);
+        //ApplyBrush("TranbokBackgroundBrush", palette.BackgroundBrush);
+        ApplyBrush("TOrbitBackgroundBrush", palette.BackgroundBrush);
+        //ApplyBrush("TranbokSurfaceBrush", palette.SurfaceBrush);
+        ApplyBrush("TOrbitSurfaceBrush", palette.SurfaceBrush);
+        //ApplyBrush("TranbokSurfaceElevatedBrush", palette.SurfaceElevatedBrush);
+        ApplyBrush("TOrbitSurfaceElevatedBrush", palette.SurfaceElevatedBrush);
+        ApplyBrush("TOrbitSurfaceHoverBrush", palette.SurfaceHoverBrush);
+        //ApplyBrush("TranbokBorderBrush", palette.BorderBrush);
+        ApplyBrush("TOrbitBorderBrush", palette.BorderBrush);
+        ApplyBrush("TOrbitBorderHoverBrush", palette.BorderHoverBrush);
+        //ApplyBrush("TranbokTextPrimaryBrush", palette.TextPrimaryBrush);
+        ApplyBrush("TOrbitTextPrimaryBrush", palette.TextPrimaryBrush);
+        //ApplyBrush("TranbokTextSecondaryBrush", palette.TextSecondaryBrush);
+        ApplyBrush("TOrbitTextSecondaryBrush", palette.TextSecondaryBrush);
+        //ApplyBrush("TranbokTextMutedBrush", palette.TextMutedBrush);
+        ApplyBrush("TOrbitTextMutedBrush", palette.TextMutedBrush);
+        //ApplyBrush("TranbokBadgeSuccessBackgroundBrush", palette.BadgeSuccessBackgroundBrush);
+        ApplyBrush("TOrbitBadgeSuccessBackgroundBrush", palette.BadgeSuccessBackgroundBrush);
+        //ApplyBrush("TranbokBadgeSuccessForegroundBrush", palette.BadgeSuccessForegroundBrush);
+        ApplyBrush("TOrbitBadgeSuccessForegroundBrush", palette.BadgeSuccessForegroundBrush);
+        //ApplyBrush("TranbokBadgeWarningBackgroundBrush", palette.BadgeWarningBackgroundBrush);
+        ApplyBrush("TOrbitBadgeWarningBackgroundBrush", palette.BadgeWarningBackgroundBrush);
+        //ApplyBrush("TranbokBadgeWarningForegroundBrush", palette.BadgeWarningForegroundBrush);
+        ApplyBrush("TOrbitBadgeWarningForegroundBrush", palette.BadgeWarningForegroundBrush);
+        //ApplyBrush("TranbokBadgeDangerBackgroundBrush", palette.BadgeDangerBackgroundBrush);
+        ApplyBrush("TOrbitBadgeDangerBackgroundBrush", palette.BadgeDangerBackgroundBrush);
+        //ApplyBrush("TranbokBadgeDangerForegroundBrush", palette.BadgeDangerForegroundBrush);
+        ApplyBrush("TOrbitBadgeDangerForegroundBrush", palette.BadgeDangerForegroundBrush);
         ApplyBrush("ComboBoxDropDownBackground", palette.SurfaceBrush);
         ApplyBrush("ComboBoxDropDownBorderBrush", palette.BorderBrush);
         ApplyBrush("ComboBoxItemBackground", palette.SurfaceBrush);

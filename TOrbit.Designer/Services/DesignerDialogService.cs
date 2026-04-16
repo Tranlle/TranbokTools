@@ -31,8 +31,8 @@ public sealed class DesignerDialogService : IDesignerDialogService
         {
             body.Children.Add(new Border
             {
-                Background = GetResource<IBrush>(owner, "TranbokBadgeWarningBackgroundBrush"),
-                BorderBrush = GetResource<IBrush>(owner, "TranbokBorderBrush"),
+                Background = GetResource<IBrush>(owner, "TOrbitBadgeWarningBackgroundBrush"),
+                BorderBrush = GetResource<IBrush>(owner, "TOrbitBorderBrush"),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(12, 8),
@@ -41,7 +41,7 @@ public sealed class DesignerDialogService : IDesignerDialogService
                     Text = viewModel.Note,
                     TextWrapping = TextWrapping.Wrap,
                     FontSize = 13,
-                    Foreground = GetResource<IBrush>(owner, "TranbokBadgeWarningForegroundBrush")
+                    Foreground = GetResource<IBrush>(owner, "TOrbitBadgeWarningForegroundBrush")
                 }
             });
         }
@@ -84,8 +84,8 @@ public sealed class DesignerDialogService : IDesignerDialogService
         {
             body.Children.Add(new Border
             {
-                Background = GetResource<IBrush>(owner, "TranbokBadgeWarningBackgroundBrush"),
-                BorderBrush = GetResource<IBrush>(owner, "TranbokBorderBrush"),
+                Background = GetResource<IBrush>(owner, "TOrbitBadgeWarningBackgroundBrush"),
+                BorderBrush = GetResource<IBrush>(owner, "TOrbitBorderBrush"),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(12, 8),
@@ -94,7 +94,7 @@ public sealed class DesignerDialogService : IDesignerDialogService
                     Text = viewModel.Note,
                     TextWrapping = TextWrapping.Wrap,
                     FontSize = 13,
-                    Foreground = GetResource<IBrush>(owner, "TranbokBadgeWarningForegroundBrush")
+                    Foreground = GetResource<IBrush>(owner, "TOrbitBadgeWarningForegroundBrush")
                 }
             });
         }
@@ -220,16 +220,16 @@ public sealed class DesignerDialogService : IDesignerDialogService
         string? noteText = null,
         double scale = 1.0)
     {
-        var accentBrush = GetResource<IBrush>(owner, "TranbokAccentBrush");
-        var surfaceBrush = GetResource<IBrush>(owner, "TranbokSurfaceBrush");
-        var surfaceElevatedBrush = GetResource<IBrush>(owner, "TranbokSurfaceElevatedBrush");
-        var borderBrush = GetResource<IBrush>(owner, "TranbokBorderBrush");
-        var textPrimaryBrush = GetResource<IBrush>(owner, "TranbokTextPrimaryBrush");
-        var textSecondaryBrush = GetResource<IBrush>(owner, "TranbokTextSecondaryBrush");
-        var textMutedBrush = GetResource<IBrush>(owner, "TranbokTextMutedBrush");
-        var accentFgBrush = GetResource<IBrush>(owner, "TranbokAccentForegroundBrush");
-        var dangerBgBrush = GetResource<IBrush>(owner, "TranbokBadgeDangerBackgroundBrush");
-        var dangerFgBrush = GetResource<IBrush>(owner, "TranbokBadgeDangerForegroundBrush");
+        var accentBrush = GetResource<IBrush>(owner, "TOrbitAccentBrush");
+        var surfaceBrush = GetResource<IBrush>(owner, "TOrbitSurfaceBrush");
+        var surfaceElevatedBrush = GetResource<IBrush>(owner, "TOrbitSurfaceElevatedBrush");
+        var borderBrush = GetResource<IBrush>(owner, "TOrbitBorderBrush");
+        var textPrimaryBrush = GetResource<IBrush>(owner, "TOrbitTextPrimaryBrush");
+        var textSecondaryBrush = GetResource<IBrush>(owner, "TOrbitTextSecondaryBrush");
+        var textMutedBrush = GetResource<IBrush>(owner, "TOrbitTextMutedBrush");
+        var accentFgBrush = GetResource<IBrush>(owner, "TOrbitAccentForegroundBrush");
+        var dangerBgBrush = GetResource<IBrush>(owner, "TOrbitBadgeDangerBackgroundBrush");
+        var dangerFgBrush = GetResource<IBrush>(owner, "TOrbitBadgeDangerForegroundBrush");
 
         // ── Title bar ─────────────────────────────────────────────────
         // ── Title bar left content: title alone, or title+description stacked ──
@@ -323,7 +323,7 @@ public sealed class DesignerDialogService : IDesignerDialogService
         {
             noteBorder = new Border
             {
-                Background = GetResource<IBrush>(owner, "TranbokBadgeWarningBackgroundBrush"),
+                Background = GetResource<IBrush>(owner, "TOrbitBadgeWarningBackgroundBrush"),
                 BorderBrush = borderBrush,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8),
@@ -334,7 +334,7 @@ public sealed class DesignerDialogService : IDesignerDialogService
                     Text = noteText,
                     FontSize = Math.Round(12 * scale),
                     TextWrapping = TextWrapping.Wrap,
-                    Foreground = GetResource<IBrush>(owner, "TranbokBadgeWarningForegroundBrush")
+                    Foreground = GetResource<IBrush>(owner, "TOrbitBadgeWarningForegroundBrush")
                 }
             };
         }

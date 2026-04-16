@@ -23,7 +23,9 @@ public sealed class ThemePalette
     public string BackgroundBrush { get; set; } = "#0F1115";
     public string SurfaceBrush { get; set; } = "#151923";
     public string SurfaceElevatedBrush { get; set; } = "#1B2130";
+    public string SurfaceHoverBrush { get; set; } = "#212C40";
     public string BorderBrush { get; set; } = "#293044";
+    public string BorderHoverBrush { get; set; } = "#3A5070";
 
     // Text
     public string TextPrimaryBrush { get; set; } = "#F4F7FB";

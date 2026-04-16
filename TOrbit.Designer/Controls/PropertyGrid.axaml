@@ -9,6 +9,7 @@
   <UserControl.DataTemplates>
     <DataTemplate DataType="{x:Type system:String}">
       <TextBlock Text="{Binding}"
+                 FontSize="13"
                  TextWrapping="NoWrap"
                  TextTrimming="CharacterEllipsis"
                  ToolTip.Tip="{Binding}"
@@ -26,9 +27,9 @@
       <DataTemplate x:DataType="models:PropertyGridItem">
         <Border BorderBrush="{DynamicResource TOrbitBorderBrush}"
                 BorderThickness="0,0,0,1"
-                Padding="0,10">
+                Padding="0,8">
           <Grid ColumnDefinitions="Auto,*"
-                ColumnSpacing="16">
+                ColumnSpacing="14">
             <TextBlock Classes="field-label"
                        Width="{Binding LabelColumnWidth, ElementName=Root}"
                        Text="{Binding Label}"

@@ -4,33 +4,25 @@
              x:Class="TOrbit.Designer.Controls.EditorHeader"
              x:DataType="controls:EditorHeader"
              x:Name="Root">
-  <Grid RowDefinitions="Auto,1"
-        RowSpacing="0">
-    <Grid Grid.Row="0"
-          ColumnDefinitions="*,Auto"
-          ColumnSpacing="12"
-          Margin="0,0,0,12">
-      <!-- Code chip: filename in monospace -->
-      <Border Background="{DynamicResource TOrbitSurfaceElevatedBrush}"
-              BorderBrush="{DynamicResource TOrbitBorderBrush}"
-              BorderThickness="1"
-              CornerRadius="{DynamicResource TOrbitRadiusSmall}"
-              Padding="12,6"
-              HorizontalAlignment="Left"
-              VerticalAlignment="Center">
-        <TextBlock Text="{Binding Title, ElementName=Root}"
-                   FontFamily="{DynamicResource TOrbitMonoFontFamily}"
-                   FontSize="13"
-                   Foreground="{DynamicResource TOrbitAccentSubtleForegroundBrush}"
-                   VerticalAlignment="Center" />
-      </Border>
-      <ContentPresenter Grid.Column="1"
-                        Content="{Binding ActionContent, ElementName=Root}"
-                        VerticalAlignment="Center" />
-    </Grid>
-    <!-- Bottom separator -->
-    <Border Grid.Row="1"
+  <Grid ColumnDefinitions="*,Auto"
+        ColumnSpacing="12"
+        MinHeight="36">
+    <!-- Filename chip in monospace -->
+    <Border Background="{DynamicResource TOrbitSurfaceElevatedBrush}"
             BorderBrush="{DynamicResource TOrbitBorderBrush}"
-            BorderThickness="0,1,0,0" />
+            BorderThickness="1"
+            CornerRadius="{DynamicResource TOrbitRadiusSmall}"
+            Padding="10,5"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Center">
+      <TextBlock Text="{Binding Title, ElementName=Root}"
+                 FontFamily="{DynamicResource TOrbitMonoFontFamily}"
+                 FontSize="12"
+                 Foreground="{DynamicResource TOrbitAccentSubtleForegroundBrush}"
+                 VerticalAlignment="Center" />
+    </Border>
+    <ContentPresenter Grid.Column="1"
+                      Content="{Binding ActionContent, ElementName=Root}"
+                      VerticalAlignment="Center" />
   </Grid>
 </UserControl>

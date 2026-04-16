@@ -1,3 +1,6 @@
+using TOrbit.Plugin.Core.Base;
+using TOrbit.Plugin.Core.Enums;
+
 namespace TOrbit.Core.Models;
 
 public sealed partial class PluginEntry : ObservableObject
@@ -11,6 +14,12 @@ public sealed partial class PluginEntry : ObservableObject
     [ObservableProperty]
     private int sort;
 
+    [ObservableProperty]
+    private Exception? lastError;
+
+    [ObservableProperty]
+    private DateTimeOffset stateChangedAt = DateTimeOffset.Now;
+
     public IPlugin Plugin { get; }
 
     public bool IsBuiltIn { get; }
@@ -23,6 +32,8 @@ public sealed partial class PluginEntry : ObservableObject
     public string Icon => Plugin.Descriptor.Icon ?? string.Empty;
     public string Version => Plugin.Descriptor.Version;
     public string Tags => Plugin.Descriptor.Tags ?? string.Empty;
+    public PluginState State => Plugin is BasePlugin basePlugin ? basePlugin.State : PluginState.Unknown;
+    public PluginKind Kind => Plugin.Descriptor.Kind;
     public IReadOnlyList<string> DisplayTags => Tags
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         .Where(tag => !string.IsNullOrWhiteSpace(tag))
@@ -51,5 +62,12 @@ public sealed partial class PluginEntry : ObservableObject
 
         isEnabled = true;
         OnPropertyChanged(nameof(IsEnabled));
+    }
+
+    public void NotifyStateChanged()
+    {
+        StateChangedAt = DateTimeOffset.Now;
+        OnPropertyChanged(nameof(State));
+        OnPropertyChanged(nameof(LastError));
     }
 }

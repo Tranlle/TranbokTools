@@ -4,16 +4,32 @@
              x:Class="TOrbit.Designer.Controls.LogViewer"
              x:DataType="controls:LogViewer"
              x:Name="Root">
-  <Border Classes="card">
-    <Grid RowDefinitions="Auto,12,*">
-      <controls:SectionHeader Title="{Binding Title, ElementName=Root}"
-                              Description="{Binding Description, ElementName=Root}"
-                              ActionContent="{Binding ActionContent, ElementName=Root}" />
-      <Border Grid.Row="2"
+  <Border Classes="card" Padding="0">
+    <Grid RowDefinitions="Auto,*">
+
+      <!-- Header -->
+      <Grid Grid.Row="0"
+            ColumnDefinitions="*,Auto"
+            ColumnSpacing="12"
+            Margin="18,14,16,14">
+        <StackPanel Spacing="2" VerticalAlignment="Center">
+          <TextBlock Classes="subsection-title"
+                     Text="{Binding Title, ElementName=Root}" />
+          <TextBlock Classes="caption-muted"
+                     Text="{Binding Description, ElementName=Root}"
+                     MinHeight="0" />
+        </StackPanel>
+        <ContentPresenter Grid.Column="1"
+                          Content="{Binding ActionContent, ElementName=Root}"
+                          VerticalAlignment="Center" />
+      </Grid>
+
+      <!-- Log output -->
+      <Border Grid.Row="1"
               Background="{DynamicResource TOrbitBackgroundBrush}"
               BorderBrush="{DynamicResource TOrbitBorderBrush}"
-              BorderThickness="1"
-              CornerRadius="{DynamicResource TOrbitRadiusMedium}">
+              BorderThickness="0,1,0,0"
+              CornerRadius="0,0,14,14">
         <TextBox Text="{Binding Text, ElementName=Root}"
                  IsReadOnly="True"
                  AcceptsReturn="True"
@@ -21,13 +37,15 @@
                  VerticalContentAlignment="Top"
                  FontFamily="{DynamicResource TOrbitMonoFontFamily}"
                  FontSize="12"
+                 LineHeight="18"
                  Foreground="{DynamicResource TOrbitTextSecondaryBrush}"
                  Background="Transparent"
                  BorderThickness="0"
-                 Padding="12,10"
+                 Padding="16,12"
                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
                  ScrollViewer.VerticalScrollBarVisibility="Auto" />
       </Border>
+
     </Grid>
   </Border>
 </UserControl>

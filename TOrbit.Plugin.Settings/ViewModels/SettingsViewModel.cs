@@ -1,4 +1,3 @@
-using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -23,12 +22,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string appName = "T-Orbit";
 
     [ObservableProperty]
-    private string theme = "Dark";
-
-    [ObservableProperty]
-    private DesignerOptionItem? selectedThemeOption;
-
-    [ObservableProperty]
     private DesignerOptionItem? selectedPaletteOption;
 
     [ObservableProperty]
@@ -50,13 +43,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool useWorkspaceForMigrations = true;
 
     [ObservableProperty]
-    private string statusMessage = "设置已就绪";
+    private bool minimizeToTrayOnClose = true;
 
-    public ObservableCollection<DesignerOptionItem> ThemeOptions { get; } =
-    [
-        new DesignerOptionItem { Key = "Dark",  Label = "深色模式", Description = "适合低亮环境" },
-        new DesignerOptionItem { Key = "Light", Label = "浅色模式", Description = "适合明亮环境" }
-    ];
+    [ObservableProperty]
+    private string statusMessage = "设置已就绪";
 
     public ObservableCollection<DesignerOptionItem> FontOptions    { get; } = [];
     public ObservableCollection<DesignerOptionItem> PaletteOptions { get; } = [];
@@ -127,11 +117,10 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         appName       = shellService.AppName;
         workspaceRoot = shellService.WorkspaceRoot;
-        theme = themeService.CurrentTheme == ThemeVariant.Light ? "Light" : "Dark";
-        SelectedThemeOption = ThemeOptions.FirstOrDefault(o => o.Key == theme) ?? ThemeOptions.FirstOrDefault();
         SelectedFontOption  = FontOptions.FirstOrDefault(o => o.Key == preferences.FontOptionKey)
             ?? FontOptions.FirstOrDefault(o => o.Key == themeService.CurrentFontOptionKey)
             ?? FontOptions.FirstOrDefault();
+        MinimizeToTrayOnClose = preferences.CloseButtonBehavior == CloseButtonBehavior.MinimizeToTray;
 
         foreach (var palette in themeService.GetAvailablePalettes())
         {
@@ -154,16 +143,24 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         SaveCommand = new RelayCommand(() =>
         {
-            Theme = SelectedThemeOption?.Key ?? Theme;
             var paletteKey = ShowAdvancedThemeSettings
                 ? SelectedAdvancedPaletteOption?.Key ?? SelectedPaletteOption?.Key ?? _themeService.CurrentPaletteKey
                 : SelectedPaletteOption?.Key ?? _themeService.CurrentPaletteKey;
             var fontOptionKey = SelectedFontOption?.Key ?? "system";
 
             _themeService.SetPalette(paletteKey);
-            _themeService.SetTheme(Theme);
             _themeService.SetFontOption(fontOptionKey);
-            _preferencesService.Save(new AppPreferences { FontOptionKey = fontOptionKey });
+
+            var appliedPaletteKey = _themeService.CurrentPaletteKey;
+            SelectedPaletteOption = PaletteOptions.FirstOrDefault(o => o.Key == appliedPaletteKey) ?? SelectedPaletteOption;
+            SelectedAdvancedPaletteOption = AdvancedPaletteOptions.FirstOrDefault(o => o.Key == appliedPaletteKey);
+
+            _preferencesService.Save(new AppPreferences
+            {
+                FontOptionKey = fontOptionKey,
+                PaletteKey = appliedPaletteKey,
+                CloseButtonBehavior = MinimizeToTrayOnClose ? CloseButtonBehavior.MinimizeToTray : CloseButtonBehavior.Exit
+            });
             SavePluginVariables();
 
             var fontLabel = SelectedFontOption?.Label ?? "系统推荐";
@@ -173,18 +170,21 @@ public sealed partial class SettingsViewModel : ObservableObject
         ResetCommand = new RelayCommand(() =>
         {
             AppName = shellService.AppName;
-            Theme   = "Dark";
-            SelectedThemeOption  = ThemeOptions.FirstOrDefault(o => o.Key == Theme);
-            SelectedPaletteOption = PaletteOptions.FirstOrDefault(o => o.Key == "torbit-dark") ?? PaletteOptions.FirstOrDefault();
+            SelectedPaletteOption = PaletteOptions.FirstOrDefault(o => o.Key == "tranbok-dark") ?? PaletteOptions.FirstOrDefault();
             SelectedAdvancedPaletteOption = null;
             SelectedFontOption = FontOptions.FirstOrDefault(o => o.Key == "system") ?? FontOptions.FirstOrDefault();
+            MinimizeToTrayOnClose = true;
             ShowAdvancedThemeSettings = false;
             WorkspaceRoot = shellService.WorkspaceRoot;
             UseWorkspaceForMigrations = true;
-            _themeService.SetPalette(SelectedPaletteOption?.Key ?? "torbit-dark");
-            _themeService.SetTheme(Theme);
+            _themeService.SetPalette(SelectedPaletteOption?.Key ?? "tranbok-dark");
             _themeService.SetFontOption("system");
-            _preferencesService.Save(new AppPreferences { FontOptionKey = "system" });
+            _preferencesService.Save(new AppPreferences
+            {
+                FontOptionKey = "system",
+                PaletteKey = SelectedPaletteOption?.Key ?? "tranbok-dark",
+                CloseButtonBehavior = CloseButtonBehavior.MinimizeToTray
+            });
             StatusMessage = "设置已重置";
         });
 

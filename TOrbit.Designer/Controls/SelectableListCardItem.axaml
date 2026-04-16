@@ -6,31 +6,33 @@
              x:Name="Root">
   <UserControl.Styles>
     <Style Selector="Border#Card">
-      <Setter Property="Background" Value="{DynamicResource TOrbitSurfaceBrush}" />
+      <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="3,1,1,1" />
+      <Setter Property="BorderThickness" Value="3,0,0,0" />
+      <Setter Property="CornerRadius" Value="{DynamicResource TOrbitRadiusMedium}" />
       <Setter Property="Transitions">
         <Transitions>
-          <BrushTransition Property="Background" Duration="0:0:0.12" />
-          <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+          <BrushTransition Property="Background" Duration="0:0:0.1" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.1" />
         </Transitions>
       </Setter>
     </Style>
     <Style Selector="Border#Card:pointerover">
-      <Setter Property="Background" Value="{DynamicResource TOrbitSurfaceElevatedBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource TOrbitBorderBrush}" />
+      <Setter Property="Background" Value="{DynamicResource TOrbitSurfaceHoverBrush}" />
     </Style>
     <Style Selector="UserControl.selected Border#Card">
       <Setter Property="Background" Value="{DynamicResource TOrbitAccentSubtleBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource TOrbitAccentBrush}" />
+    </Style>
+    <Style Selector="UserControl.selected Border#Card TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TOrbitAccentSubtleForegroundBrush}" />
     </Style>
   </UserControl.Styles>
 
   <Border x:Name="Card"
           Margin="0"
           Padding="14,10"
-          MinHeight="60"
-          CornerRadius="{DynamicResource TOrbitRadiusMedium}">
+          MinHeight="52">
     <Grid ColumnDefinitions="*,Auto"
           ColumnSpacing="12"
           VerticalAlignment="Center">

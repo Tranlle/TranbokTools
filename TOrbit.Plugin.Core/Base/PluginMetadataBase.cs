@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using TOrbit.Plugin.Core.Enums;
 using TOrbit.Plugin.Core.Models;
 
 namespace TOrbit.Plugin.Core.Base;
@@ -43,4 +44,6 @@ public abstract class PluginBaseMetadata
     /// 基座与设置插件不负责校验，具体的错误处理由各插件自行实现。
     /// </summary>
     public virtual IReadOnlyList<PluginVariableDefinition> VariableDefinitions => [];
+
+    public virtual PluginKind Kind => PluginKind.Visual;
 }

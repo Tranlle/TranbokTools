@@ -14,6 +14,8 @@ public abstract class BasePlugin : IPlugin, IPluginViewProvider
 
     public PluginState State { get; private set; } = PluginState.Discovered;
 
+    public void SetState(PluginState state) => State = state;
+
     protected static PluginDescriptor CreateDescriptor<TPlugin>(
         PluginBaseMetadata metadata,
         PluginLoadMode loadMode = PluginLoadMode.Lazy,
@@ -35,7 +37,8 @@ public abstract class BasePlugin : IPlugin, IPluginViewProvider
             metadata.Tags,
             loadMode,
             isolationMode,
-            metadata.VariableDefinitions.Count > 0 ? metadata.VariableDefinitions : null);
+            metadata.VariableDefinitions.Count > 0 ? metadata.VariableDefinitions : null,
+            metadata.Kind);
     }
 
     public virtual async ValueTask InitializeAsync(PluginContext context, CancellationToken cancellationToken = default)

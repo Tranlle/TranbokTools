@@ -4,12 +4,15 @@
              x:Class="TOrbit.Designer.Controls.ListCardItem"
              x:DataType="controls:ListCardItem"
              x:Name="Root">
-  <Border Margin="0,0,0,10"
-          Padding="14"
-          CornerRadius="12"
-          Background="{DynamicResource TOrbitSurfaceBrush}">
-    <StackPanel Spacing="4">
+  <Border Margin="0,0,0,6"
+          Padding="14,10"
+          CornerRadius="{DynamicResource TOrbitRadiusMedium}"
+          Background="{DynamicResource TOrbitSurfaceElevatedBrush}"
+          BorderBrush="{DynamicResource TOrbitBorderBrush}"
+          BorderThickness="1">
+    <StackPanel Spacing="3">
       <TextBlock Text="{Binding Title, ElementName=Root}"
+                 FontSize="13"
                  FontWeight="SemiBold" />
       <TextBlock Classes="caption-muted"
                  Text="{Binding Subtitle, ElementName=Root}" />

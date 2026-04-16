@@ -17,6 +17,7 @@ public static class ToolHostCoreServiceCollectionExtensions
         services.AddSingleton<IPluginDiscoveryService, PluginDiscoveryService>();
         services.AddSingleton<IPluginVariableService, PluginVariableService>();
         services.AddSingleton<IKeyMapService, KeyMapService>();
+        services.AddSingleton<IPluginLifecycleService, PluginLifecycleService>();
 
         // ── Tool 注册中心（工厂注册，新增 Tool 只改这里）──────────────────
         services.AddSingleton<IPluginToolRegistry>(sp =>

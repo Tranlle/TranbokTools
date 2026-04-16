@@ -416,7 +416,12 @@ public sealed class StorageService : IStorageService, IDisposable
             var prefs = JsonSerializer.Deserialize<AppPreferences>(
                 File.ReadAllText(path), JsonOpts);
             if (prefs is not null)
+            {
                 SetKv(scope, AppPreferencesService.KeyFontOption, prefs.FontOptionKey);
+                SetKv(scope, AppPreferencesService.KeyTheme, prefs.ThemeKey);
+                SetKv(scope, AppPreferencesService.KeyPalette, prefs.PaletteKey);
+                SetKv(scope, AppPreferencesService.KeyCloseButtonBehavior, prefs.CloseButtonBehavior.ToString());
+            }
             File.Delete(path);
         }
         catch { }
