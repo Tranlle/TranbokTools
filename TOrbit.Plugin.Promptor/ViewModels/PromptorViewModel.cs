@@ -48,58 +48,87 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
     public ObservableCollection<PromptorLogEntry> LogEntries { get; } = [];
 
     public string FormattedLogText => LogEntries.Count == 0
-        ? "（暂无操作日志）\n\n提示：完成一次提示词优化后，此处将显示结构化的调用记录。"
-        : string.Join(Environment.NewLine + Environment.NewLine,
-            LogEntries.Select(e => e.FormatAsText()));
+        ? "（暂无操作日志）\n\n提示：完成一次提示词优化后，这里会显示结构化调用记录。"
+        : string.Join(Environment.NewLine + Environment.NewLine, LogEntries.Select(entry => entry.FormatAsText()));
 
     public IReadOnlyList<DesignerOptionItem> StrategyOptions { get; } =
     [
-        new DesignerOptionItem { Key = "Structured",     Label = "结构化", Value = OptimizationStrategy.Structured,     Description = "角色定义 + 任务描述 + 约束条件" },
-        new DesignerOptionItem { Key = "FewShot",        Label = "少样本", Value = OptimizationStrategy.FewShot,        Description = "自动补充典型输入输出示例" },
-        new DesignerOptionItem { Key = "ChainOfThought", Label = "思维链", Value = OptimizationStrategy.ChainOfThought, Description = "引导模型逐步分析推理" },
-        new DesignerOptionItem { Key = "Concise",        Label = "精简版", Value = OptimizationStrategy.Concise,        Description = "去冗余、保核心" },
-        new DesignerOptionItem { Key = "Technical",      Label = "技术向", Value = OptimizationStrategy.Technical,      Description = "代码规范 + 输出格式" }
+        new DesignerOptionItem
+        {
+            Key = "Structured",
+            Label = "结构化",
+            Value = OptimizationStrategy.Structured,
+            Description = "角色定义 + 任务描述 + 约束条件"
+        },
+        new DesignerOptionItem
+        {
+            Key = "FewShot",
+            Label = "少样本",
+            Value = OptimizationStrategy.FewShot,
+            Description = "自动补充典型输入输出示例"
+        },
+        new DesignerOptionItem
+        {
+            Key = "ChainOfThought",
+            Label = "思维链",
+            Value = OptimizationStrategy.ChainOfThought,
+            Description = "引导模型逐步分析和推理"
+        },
+        new DesignerOptionItem
+        {
+            Key = "Concise",
+            Label = "精简版",
+            Value = OptimizationStrategy.Concise,
+            Description = "去冗余，保留核心表达"
+        },
+        new DesignerOptionItem
+        {
+            Key = "Technical",
+            Label = "技术向",
+            Value = OptimizationStrategy.Technical,
+            Description = "强化代码规范和输出格式"
+        }
     ];
 
-    public bool HasRawInput        => !string.IsNullOrWhiteSpace(RawInput);
+    public bool HasRawInput => !string.IsNullOrWhiteSpace(RawInput);
     public bool HasOptimizedOutput => !string.IsNullOrWhiteSpace(OptimizedOutput);
-    public bool IsIdle             => !IsBusy;
-    public bool CanOptimize        => HasRawInput && !IsBusy;
+    public bool IsIdle => !IsBusy;
+    public bool CanOptimize => HasRawInput && !IsBusy;
     public string StrategyDescription => SelectedStrategyOption?.Description ?? string.Empty;
-    public string CopyButtonText   => IsCopied ? "✓ 已复制" : "复制结果";
+    public string CopyButtonText => IsCopied ? "已复制" : "复制结果";
 
-    public IRelayCommand OptimizeCommand    { get; }
-    public IRelayCommand CopyCommand        { get; }
-    public IRelayCommand ClearAllCommand    { get; }
+    public IRelayCommand OptimizeCommand { get; }
+    public IRelayCommand CopyCommand { get; }
+    public IRelayCommand ClearAllCommand { get; }
     public IRelayCommand ClearOutputCommand { get; }
-    public IRelayCommand CancelCommand      { get; }
-    public IRelayCommand ShowLogCommand     { get; }
-    public IRelayCommand ClearLogCommand    { get; }
+    public IRelayCommand CancelCommand { get; }
+    public IRelayCommand ShowLogCommand { get; }
+    public IRelayCommand ClearLogCommand { get; }
 
     public PromptorViewModel(
         IDesignerDialogService? dialogService,
         IReadOnlyDictionary<string, string> variables)
     {
         _dialogService = dialogService;
-        _variables     = variables;
+        _variables = variables;
 
         SelectedStrategyOption = StrategyOptions[0];
 
-        OptimizeCommand    = new AsyncRelayCommand(OptimizeAsync);
-        CopyCommand        = new AsyncRelayCommand(CopyToClipboardAsync);
-        ClearAllCommand    = new RelayCommand(ClearAll);
+        OptimizeCommand = new AsyncRelayCommand(OptimizeAsync);
+        CopyCommand = new AsyncRelayCommand(CopyToClipboardAsync);
+        ClearAllCommand = new RelayCommand(ClearAll);
         ClearOutputCommand = new RelayCommand(() => OptimizedOutput = string.Empty);
-        CancelCommand      = new RelayCommand(() => _cts?.Cancel());
-        ShowLogCommand     = new AsyncRelayCommand(ShowLogDialogAsync);
-        ClearLogCommand    = new RelayCommand(ClearLog);
+        CancelCommand = new RelayCommand(() => _cts?.Cancel());
+        ShowLogCommand = new AsyncRelayCommand(ShowLogDialogAsync);
+        ClearLogCommand = new RelayCommand(ClearLog);
 
         LogEntries.CollectionChanged += (_, _) => OnPropertyChanged(nameof(FormattedLogText));
     }
 
-    partial void OnRawInputChanged(string value)              => RaiseDerivedProperties();
-    partial void OnOptimizedOutputChanged(string value)       => RaiseDerivedProperties();
-    partial void OnIsBusyChanged(bool value)                  => RaiseDerivedProperties();
-    partial void OnIsCopiedChanged(bool value)                => OnPropertyChanged(nameof(CopyButtonText));
+    partial void OnRawInputChanged(string value) => RaiseDerivedProperties();
+    partial void OnOptimizedOutputChanged(string value) => RaiseDerivedProperties();
+    partial void OnIsBusyChanged(bool value) => RaiseDerivedProperties();
+    partial void OnIsCopiedChanged(bool value) => OnPropertyChanged(nameof(CopyButtonText));
     partial void OnSelectedStrategyOptionChanged(DesignerOptionItem? value) => RaiseDerivedProperties();
 
     private void RaiseDerivedProperties()
@@ -130,20 +159,22 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
             return;
         }
 
-        var strategy      = SelectedStrategyOption?.Value is OptimizationStrategy s ? s : OptimizationStrategy.Structured;
+        var strategy = SelectedStrategyOption?.Value is OptimizationStrategy selected
+            ? selected
+            : OptimizationStrategy.Structured;
         var strategyLabel = SelectedStrategyOption?.Label ?? "结构化";
-        var inputPreview  = RawInput.Length > 80
-            ? RawInput[..80].Replace('\n', ' ').Replace('\r', ' ') + "…"
+        var inputPreview = RawInput.Length > 80
+            ? RawInput[..80].Replace('\n', ' ').Replace('\r', ' ') + "..."
             : RawInput.Replace('\n', ' ').Replace('\r', ' ');
 
         _cts?.Cancel();
         _cts = new CancellationTokenSource();
 
-        IsBusy          = true;
+        IsBusy = true;
         OptimizedOutput = string.Empty;
-        StatusMessage   = $"正在优化（{strategyLabel}）…";
+        StatusMessage = $"正在优化（{strategyLabel}）...";
 
-        var sw      = Stopwatch.StartNew();
+        var sw = Stopwatch.StartNew();
         var success = false;
         string? errorMessage = null;
 
@@ -156,20 +187,20 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
             }
 
             sw.Stop();
-            success       = true;
-            StatusMessage = $"✓ 优化完成（{strategyLabel}）";
+            success = true;
+            StatusMessage = $"优化完成（{strategyLabel}）";
         }
         catch (OperationCanceledException)
         {
             sw.Stop();
             StatusMessage = "已取消";
-            errorMessage  = "用户取消";
+            errorMessage = "用户取消";
         }
         catch (Exception ex)
         {
             sw.Stop();
-            StatusMessage = "✗ 优化失败";
-            errorMessage  = ex.Message;
+            StatusMessage = "优化失败";
+            errorMessage = ex.Message;
             await ShowAlertAsync("优化失败", ex.Message);
         }
         finally
@@ -177,17 +208,16 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
             IsBusy = false;
             RaiseDerivedProperties();
 
-            // 写入结构化日志
             LogEntries.Insert(0, new PromptorLogEntry
             {
-                Time          = DateTime.Now,
+                Time = DateTime.Now,
                 StrategyLabel = strategyLabel,
-                Model         = config.ModelName,
-                Provider      = config.Provider,
-                IsSuccess     = success,
-                Duration      = sw.Elapsed,
-                InputPreview  = inputPreview,
-                ErrorMessage  = errorMessage
+                Model = config.ModelName,
+                Provider = config.Provider,
+                IsSuccess = success,
+                Duration = sw.Elapsed,
+                InputPreview = inputPreview,
+                ErrorMessage = errorMessage
             });
         }
     }
@@ -201,16 +231,16 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
 
         await _dialogService.ShowSheetAsync(owner, new DesignerSheetViewModel
         {
-            Title               = "操作日志",
-            Description         = LogEntries.Count > 0 ? $"共 {LogEntries.Count} 条记录" : "暂无记录",
-            Content             = content,
-            ConfirmText         = "关闭",
-            CancelText          = string.Empty,
-            Icon                = DesignerDialogIcon.Info,
-            BaseFontSize        = 13,
-            DialogWidth         = 860,
-            DialogHeight        = 560,
-            LockSize            = true,
+            Title = "操作日志",
+            Description = LogEntries.Count > 0 ? $"共 {LogEntries.Count} 条记录" : "暂无记录",
+            Content = content,
+            ConfirmText = "关闭",
+            CancelText = string.Empty,
+            Icon = DesignerDialogIcon.Info,
+            BaseFontSize = 13,
+            DialogWidth = 860,
+            DialogHeight = 560,
+            LockSize = true,
             HideSystemDecorations = true
         });
     }
@@ -225,19 +255,21 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
             if (TryGetOwnerWindow()?.Clipboard is { } clipboard)
             {
                 await clipboard.SetTextAsync(OptimizedOutput);
-                StatusMessage = "✓ 已复制到剪贴板";
+                StatusMessage = "已复制到剪贴板";
 
-                // 按钮文案反馈：1.5s 后恢复
                 _copyCts?.Cancel();
                 _copyCts = new CancellationTokenSource();
                 var token = _copyCts.Token;
                 IsCopied = true;
+
                 try
                 {
                     await Task.Delay(1500, token);
                     IsCopied = false;
                 }
-                catch (OperationCanceledException) { /* 新一次复制触发，不重置 */ }
+                catch (OperationCanceledException)
+                {
+                }
             }
         }
         catch (Exception ex)
@@ -248,9 +280,9 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
 
     private void ClearAll()
     {
-        RawInput        = string.Empty;
+        RawInput = string.Empty;
         OptimizedOutput = string.Empty;
-        StatusMessage   = "就绪";
+        StatusMessage = "就绪";
         RaiseDerivedProperties();
     }
 
@@ -261,12 +293,12 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
 
     private PromptorConfig ReadConfig()
     {
-        var provider    = GetVar("PROMPTOR_PROVIDER",     "openai");
-        var endpoint    = GetVar("PROMPTOR_API_ENDPOINT", "");
-        var apiKey      = GetVar("PROMPTOR_API_KEY",      "");
-        var model       = GetVar("PROMPTOR_MODEL_NAME",   "gpt-4o");
-        var maxTokensRaw = GetVar("PROMPTOR_MAX_TOKENS",  "2048");
-        var tempRaw      = GetVar("PROMPTOR_TEMPERATURE", "1.0");
+        var provider = GetVar("PROMPTOR_PROVIDER", "openai");
+        var endpoint = GetVar("PROMPTOR_API_ENDPOINT", "");
+        var apiKey = GetVar("PROMPTOR_API_KEY", "");
+        var model = GetVar("PROMPTOR_MODEL_NAME", "gpt-4o");
+        var maxTokensRaw = GetVar("PROMPTOR_MAX_TOKENS", "2048");
+        var tempRaw = GetVar("PROMPTOR_TEMPERATURE", "1.0");
 
         if (!int.TryParse(maxTokensRaw, out var maxTokens) || maxTokens <= 0)
             maxTokens = 2048;
@@ -280,20 +312,20 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
         if (!isOllama && !hasEndpoint && string.IsNullOrWhiteSpace(apiKey))
         {
             throw new InvalidOperationException(
-                "尚未配置 API 密钥。\n请在「设置 → 插件变量管理」中添加 PROMPTOR_API_KEY 变量。");
+                "尚未配置 API 密钥。\n请在“设置 -> 插件变量管理”中添加 PROMPTOR_API_KEY 变量。");
         }
 
         return new PromptorConfig(provider, endpoint, apiKey, model, maxTokens, temperature);
     }
 
-    /// <summary>当宿主注入新变量值时调用（例如用户保存设置后）。</summary>
+    // Called after the host reinjects plugin variables, for example after saving settings.
     public void UpdateVariables(IReadOnlyDictionary<string, string> values)
     {
         _variables = values;
     }
 
     private string GetVar(string key, string defaultValue)
-        => _variables.TryGetValue(key, out var v) && !string.IsNullOrEmpty(v) ? v : defaultValue;
+        => _variables.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value) ? value : defaultValue;
 
     private async Task ShowAlertAsync(string title, string message)
     {
@@ -302,11 +334,11 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
 
         await _dialogService.ShowConfirmAsync(owner, new DesignerConfirmDialogViewModel
         {
-            Title       = title,
-            Message     = message,
+            Title = title,
+            Message = message,
             ConfirmText = "知道了",
-            CancelText  = string.Empty,
-            Icon        = DesignerDialogIcon.Info
+            CancelText = string.Empty,
+            Icon = DesignerDialogIcon.Info
         });
     }
 
@@ -314,6 +346,7 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             return desktop.MainWindow;
+
         return null;
     }
 

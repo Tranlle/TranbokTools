@@ -6,7 +6,7 @@ namespace TOrbit.Designer.DependencyInjection;
 
 public static class DesignerServiceCollectionExtensions
 {
-    public static IServiceCollection AddTranbokDesigner(this IServiceCollection services)
+    public static IServiceCollection AddTOrbitDesigner(this IServiceCollection services)
     {
         services.AddSingleton<IThemePaletteProvider, BuiltInThemePaletteProvider>();
         services.AddSingleton<IThemePaletteProvider>(_ => new JsonThemePaletteProvider(Path.Combine(AppContext.BaseDirectory, "themes")));

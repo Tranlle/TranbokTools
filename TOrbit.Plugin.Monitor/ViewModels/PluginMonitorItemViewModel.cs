@@ -32,6 +32,7 @@ public sealed partial class PluginMonitorItemViewModel : ObservableObject, IDisp
     public string EnabledLabel => _entry.IsEnabled ? "已启用" : "已禁用";
     public bool CanDisable => _entry.CanDisable;
     public bool CanToggleEnabled => _entry.CanDisable || _entry.IsEnabled;
+
     public bool IsEnabled
     {
         get => _entry.IsEnabled;
@@ -70,9 +71,7 @@ public sealed partial class PluginMonitorItemViewModel : ObservableObject, IDisp
     };
 
     public string StateStatusLabel => _entry.State == PluginState.Running ? "在线" : "离线";
-
     public IBrush StateDotBrush => _entry.State == PluginState.Running ? SuccessForeground : DangerForeground;
-
     public string? LastErrorMessage => _entry.LastError?.Message;
     public string StateChangedAtText => _entry.StateChangedAt.ToString("yyyy-MM-dd HH:mm:ss");
     public bool HasError => _entry.LastError is not null;

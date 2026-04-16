@@ -6,7 +6,8 @@ namespace TOrbit.Core.Services;
 public sealed class PluginCatalogService : IPluginCatalogService
 {
     private readonly ObservableCollection<PluginEntry> _plugins = [];
-    // O(1) Id 查找索引，与 _plugins 保持同步
+
+    // O(1) lookup index kept in sync with the observable collection.
     private readonly Dictionary<string, PluginEntry> _index = new(StringComparer.OrdinalIgnoreCase);
 
     public IReadOnlyList<PluginEntry> Plugins => _plugins;
@@ -26,16 +27,19 @@ public sealed class PluginCatalogService : IPluginCatalogService
             throw new InvalidOperationException($"Plugin '{id}' is already registered.");
 
         if (!id.Contains('.'))
+        {
             throw new InvalidOperationException(
                 $"Plugin Id \"{id}\" does not follow the reverse-domain naming convention. " +
-                $"Expected at least two dot-separated segments, e.g. \"tranbok.my-plugin\".");
+                "Expected at least two dot-separated segments, e.g. \"torbit.my-plugin\".");
+        }
 
         var entry = new PluginEntry(plugin, enabledByDefault, isBuiltIn, canDisable, builtInHint);
         if (sort.HasValue)
             entry.Sort = sort.Value;
+
         _plugins.Add(entry);
         _index[id] = entry;
     }
 
-    public PluginEntry? Get(string id) => _index.TryGetValue(id, out var e) ? e : null;
+    public PluginEntry? Get(string id) => _index.TryGetValue(id, out var entry) ? entry : null;
 }

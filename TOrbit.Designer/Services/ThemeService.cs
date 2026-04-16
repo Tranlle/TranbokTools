@@ -63,7 +63,6 @@ public sealed class ThemeService : IThemeService
             return;
 
         var fontFamily = ResolveFontFamily(_currentFontOptionKey);
-        //Application.Current.Resources["TranbokAppFontFamily"] = fontFamily;
         Application.Current.Resources["TOrbitAppFontFamily"] = fontFamily;
     }
 

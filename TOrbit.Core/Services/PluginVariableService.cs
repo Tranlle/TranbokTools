@@ -6,68 +6,65 @@ namespace TOrbit.Core.Services;
 
 public sealed class PluginVariableService : IPluginVariableService
 {
-    // 作用域前缀，供 StorageService 迁移时引用
+    // Scope prefix used by StorageService during legacy migration.
     internal static string ScopeFor(string pluginId) => $"vars:{pluginId}";
 
     private readonly IPluginCatalogService _pluginCatalog;
-    private readonly IPluginToolRegistry   _toolRegistry;
-    private readonly IStorageService       _storage;
+    private readonly IPluginToolRegistry _toolRegistry;
+    private readonly IStorageService _storage;
 
     public PluginVariableService(
         IPluginCatalogService pluginCatalog,
-        IPluginToolRegistry   toolRegistry,
-        IStorageService       storage)
+        IPluginToolRegistry toolRegistry,
+        IStorageService storage)
     {
         _pluginCatalog = pluginCatalog;
-        _toolRegistry  = toolRegistry;
-        _storage       = storage;
+        _toolRegistry = toolRegistry;
+        _storage = storage;
     }
-
-    // ── Load（构建 PluginVariableStore 供 Settings UI 使用）──────────────────
 
     public PluginVariableStore Load()
     {
         var store = new PluginVariableStore();
 
-        // 一次查询取回所有 vars:* 作用域的行，按 scope 分组，避免 N 次往返
+        // Read all vars:* scopes in one shot and group them in memory for the settings UI.
         const string prefix = "vars:";
         var allRows = _storage.GetAllKvWithMetaByPrefix(prefix);
 
         foreach (var plugin in _pluginCatalog.Plugins)
         {
-            var defs = plugin.Plugin.Descriptor.VariableDefinitions;
-            if (defs is null || defs.Count == 0) continue;
+            var definitions = plugin.Plugin.Descriptor.VariableDefinitions;
+            if (definitions is null || definitions.Count == 0)
+                continue;
 
             var scope = ScopeFor(plugin.Id);
-            if (!allRows.TryGetValue(scope, out var rows)) continue;
+            if (!allRows.TryGetValue(scope, out var rows))
+                continue;
 
-            var dbRows = rows.ToDictionary(r => r.Key, StringComparer.OrdinalIgnoreCase);
-            foreach (var def in defs)
+            var dbRows = rows.ToDictionary(row => row.Key, StringComparer.OrdinalIgnoreCase);
+            foreach (var definition in definitions)
             {
-                if (dbRows.TryGetValue(def.Key, out var row))
+                if (!dbRows.TryGetValue(definition.Key, out var row))
+                    continue;
+
+                store.Entries.Add(new PluginVariableEntry
                 {
-                    store.Entries.Add(new PluginVariableEntry
-                    {
-                        PluginId    = plugin.Id,
-                        Key         = def.Key,
-                        Value       = row.Value ?? string.Empty,
-                        IsEncrypted = row.IsEncrypted
-                    });
-                }
-                // 未存储的条目不写入 store，Save 时按 defs 驱动写入
+                    PluginId = plugin.Id,
+                    Key = definition.Key,
+                    Value = row.Value ?? string.Empty,
+                    IsEncrypted = row.IsEncrypted
+                });
             }
         }
 
         return store;
     }
 
-    // ── Save（明文传入，IsEncrypted=true 的条目由基座 Tool 加密后写库）────────
-
     public void Save(PluginVariableStore store)
     {
         ArgumentNullException.ThrowIfNull(store);
 
-        // 先完成加密，再批量写入（单事务，单次锁进出）
+        // Encrypt first, then batch-write once so persistence happens in a single locked transaction.
         IEnumerable<(string scope, string key, string? value, bool isEncrypted)> batch =
             store.Entries.Select(entry =>
             {
@@ -78,19 +75,17 @@ public sealed class PluginVariableService : IPluginVariableService
                     if (tool is not null)
                         value = tool.Encrypt(value);
                 }
+
                 return (scope: ScopeFor(entry.PluginId), key: entry.Key, value: (string?)value, isEncrypted: entry.IsEncrypted);
             });
 
         _storage.SetKvBatch(batch);
     }
 
-    // ── GetValue（Settings UI 用，自动解密加密字段）───────────────────────────
-
     public string? GetValue(string pluginId, string key)
     {
         var scope = ScopeFor(pluginId);
-        var row   = _storage.GetKvWithMeta(scope, key); // 单行查询，不拉全表
-
+        var row = _storage.GetKvWithMeta(scope, key);
         if (row is not null)
         {
             if (row.IsEncrypted && !string.IsNullOrEmpty(row.Value))
@@ -98,13 +93,12 @@ public sealed class PluginVariableService : IPluginVariableService
                 var tool = _toolRegistry.GetTool<IPluginEncryptionTool>(pluginId);
                 return tool?.TryDecrypt(row.Value) ?? string.Empty;
             }
+
             return row.Value;
         }
 
         return GetDefaultValue(pluginId, key);
     }
-
-    // ── InjectAll / InjectOne（将原始存储值推送给插件，由插件自行解密）──────────
 
     public void InjectAll()
     {
@@ -113,8 +107,6 @@ public sealed class PluginVariableService : IPluginVariableService
     }
 
     public void InjectOne(IPlugin plugin) => InjectToPlugin(plugin);
-
-    // ── Private ───────────────────────────────────────────────────────────────
 
     private void InjectToPlugin(IPlugin plugin)
     {
@@ -125,20 +117,20 @@ public sealed class PluginVariableService : IPluginVariableService
         if (definitions is null || definitions.Count == 0)
             return;
 
-        var scope  = ScopeFor(plugin.Descriptor.Id);
-        var dbDict = _storage.GetAllKvWithMeta(scope)
-            .ToDictionary(r => r.Key, r => r.Value, StringComparer.OrdinalIgnoreCase);
+        var scope = ScopeFor(plugin.Descriptor.Id);
+        var dbValues = _storage.GetAllKvWithMeta(scope)
+            .ToDictionary(row => row.Key, row => row.Value, StringComparer.OrdinalIgnoreCase);
 
-        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var def in definitions)
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var definition in definitions)
         {
-            // 传原始值：有存储值则传存储值（可能是密文），否则传默认值（明文）
-            dict[def.Key] = dbDict.TryGetValue(def.Key, out var val)
-                ? val ?? string.Empty
-                : def.DefaultValue;
+            // Push the raw persisted value to the plugin. Encrypted values stay encrypted here.
+            values[definition.Key] = dbValues.TryGetValue(definition.Key, out var value)
+                ? value ?? string.Empty
+                : definition.DefaultValue;
         }
 
-        receiver.OnVariablesInjected(dict);
+        receiver.OnVariablesInjected(values);
     }
 
     private string? GetDefaultValue(string pluginId, string key)

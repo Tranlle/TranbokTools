@@ -4,7 +4,7 @@ namespace TOrbit.Core.Services;
 
 public sealed class AppPreferencesService : IAppPreferencesService
 {
-    // 作用域常量供 StorageService 迁移时引用
+    // Scope constants are also used by StorageService during legacy file migration.
     internal const string StorageScope = "torbit.app";
     internal const string KeyFontOption = "fontOptionKey";
     internal const string KeyTheme = "themeKey";

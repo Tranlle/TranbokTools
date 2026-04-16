@@ -9,7 +9,7 @@ public static class ToolHostCoreServiceCollectionExtensions
 {
     public static IServiceCollection AddToolHostCore(this IServiceCollection services)
     {
-        // ── 基础设施 ────────────────────────────────────────────────────────
+        // Core infrastructure services.
         services.AddSingleton<IStorageService, StorageService>();
         services.AddSingleton<IAppShellService, AppShellService>();
         services.AddSingleton<IAppPreferencesService, AppPreferencesService>();
@@ -19,16 +19,16 @@ public static class ToolHostCoreServiceCollectionExtensions
         services.AddSingleton<IKeyMapService, KeyMapService>();
         services.AddSingleton<IPluginLifecycleService, PluginLifecycleService>();
 
-        // ── Tool 注册中心（工厂注册，新增 Tool 只改这里）──────────────────
+        // Host tool registry. New tool types are wired up here once and then resolved per plugin id.
         services.AddSingleton<IPluginToolRegistry>(sp =>
         {
             var registry = new PluginToolRegistry();
 
-            // 加密 Tool：每个插件独立密钥实例
+            // Each plugin gets its own encryption key.
             registry.RegisterFactory<IPluginEncryptionTool>(
                 pluginId => new AesGcmPluginEncryptionTool(pluginId));
 
-            // 存储 Tool：共享 DB 连接，按 pluginId 限定 kv: 作用域
+            // Storage is shared at the database level but isolated by plugin scope.
             var storage = sp.GetRequiredService<IStorageService>();
             registry.RegisterFactory<IPluginStorageTool>(
                 pluginId => new ScopedPluginStorageTool(pluginId, storage));

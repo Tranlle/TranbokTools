@@ -187,10 +187,10 @@ public partial class CardTextEditor : UserControl
     // ── Focus — card border transitions to accent blue ───────────────────────
 
     private void OnEditorGotFocus()
-        => ApplyBorderBrush("TranbokBorderFocusBrush");
+        => ApplyBorderBrush("TOrbitBorderFocusBrush");
 
     private void OnEditorLostFocus()
-        => ApplyBorderBrush("TranbokBorderBrush");
+        => ApplyBorderBrush("TOrbitBorderBrush");
 
     /// <summary>
     /// Looks up <paramref name="resourceKey"/> from application resources and applies it

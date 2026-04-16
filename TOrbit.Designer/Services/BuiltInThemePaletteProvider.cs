@@ -11,7 +11,7 @@ public sealed class BuiltInThemePaletteProvider : IThemePaletteProvider
         new ThemePalette
         {
             Key = "tranbok-dark",
-            Label = "Tranbok Dark",
+            Label = "T-Orbit Dark",
             Description = "默认深色蓝调方案",
             Source = "BuiltIn",
             IsBuiltIn = true,
@@ -39,7 +39,7 @@ public sealed class BuiltInThemePaletteProvider : IThemePaletteProvider
         new ThemePalette
         {
             Key = "tranbok-light",
-            Label = "Tranbok Light",
+            Label = "T-Orbit Light",
             Description = "默认浅色清爽方案",
             BaseVariant = ThemeVariant.Light,
             AccentBrush = "#5B72D6",

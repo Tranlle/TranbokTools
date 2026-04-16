@@ -379,7 +379,7 @@ public sealed partial class MigrationViewModel : PluginBaseViewModel
             Profiles = DbProfiles.Select(ToSettingsProfile).ToList()
         });
 
-        AppendLog("✓ 配置已保存至 .tranbok-tools.json 和 Migration/setting.json");
+        AppendLog("✓ 配置已保存至 .torbit-tools.json 和 Migration/setting.json");
         StatusMessage = "配置已保存";
     }
 

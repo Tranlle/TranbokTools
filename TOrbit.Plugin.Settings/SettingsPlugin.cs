@@ -29,11 +29,11 @@ public sealed class SettingsPlugin : BasePlugin, IVisualPlugin, IPluginHeaderAct
         IPluginCatalogService pluginCatalog,
         IPluginVariableService variableService)
     {
-        _shellService      = shellService;
-        _themeService      = themeService;
+        _shellService = shellService;
+        _themeService = themeService;
         _preferencesService = preferencesService;
-        _pluginCatalog     = pluginCatalog;
-        _variableService   = variableService;
+        _pluginCatalog = pluginCatalog;
+        _variableService = variableService;
     }
 
     public override PluginDescriptor Descriptor { get; } = CreateDescriptor<SettingsPlugin>(SettingsPluginMetadata.Instance);

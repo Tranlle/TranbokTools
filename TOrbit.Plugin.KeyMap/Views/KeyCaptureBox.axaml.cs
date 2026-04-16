@@ -70,7 +70,7 @@ public partial class KeyCaptureBox : UserControl
 
         if (_container is not null)
         {
-            _container.BorderBrush = Avalonia.Application.Current?.FindResource("TranbokAccentBrush") as Avalonia.Media.IBrush
+            _container.BorderBrush = Avalonia.Application.Current?.FindResource("TOrbitAccentBrush") as Avalonia.Media.IBrush
                 ?? _container.BorderBrush;
         }
     }

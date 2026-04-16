@@ -23,12 +23,21 @@ internal sealed class WorkspacePackageVersion
 
 public sealed class MigrationService
 {
-    private const string ConfigFileName = ".tranbok-tools.json";
+    private const string ConfigFileName = ".torbit-tools.json";
+    private const string LegacyConfigFileName = ".tranbok-tools.json";
     private const string SettingsDirectoryName = "Migration";
     private const string SettingsFileName = "setting.json";
-    private const string WorkspaceDirectoryName = "WorkSpace";
+    private const string WorkspaceDirectoryName = "workspace";
+    private const string CurrentConnectionEnvVar = "TORBIT_DB_CONNECTION";
+    private const string LegacyConnectionEnvVar = "TRANBOK_DB_CONNECTION";
 
-    private static string PluginRoot => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "Plugins", "Migration"));
+    private static string PluginRoot => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "T-Orbit",
+        "plugins",
+        "migration");
+
+    private static string LegacyPluginRoot => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "Plugins", "Migration"));
     private static string ConfigFilePath => Path.Combine(PluginRoot, ConfigFileName);
     private static string SettingsFilePath => Path.Combine(PluginRoot, SettingsFileName);
 
@@ -39,6 +48,28 @@ public sealed class MigrationService
         PropertyNameCaseInsensitive = true
     };
 
+    private static IEnumerable<string> EnumerateConfigCandidates(string? projectPath)
+    {
+        yield return ConfigFilePath;
+        yield return Path.Combine(LegacyPluginRoot, LegacyConfigFileName);
+
+        if (!string.IsNullOrWhiteSpace(projectPath))
+        {
+            var projectDir = GetProjectDir(projectPath);
+            yield return Path.Combine(projectDir, ConfigFileName);
+            yield return Path.Combine(projectDir, LegacyConfigFileName);
+        }
+    }
+
+    private static IEnumerable<string> EnumerateSettingsCandidates(string? projectPath)
+    {
+        yield return SettingsFilePath;
+        yield return Path.Combine(LegacyPluginRoot, SettingsFileName);
+
+        if (!string.IsNullOrWhiteSpace(projectPath))
+            yield return Path.Combine(GetProjectDir(projectPath), SettingsDirectoryName, SettingsFileName);
+    }
+
     private static string GetProjectDir(string projectPath)
         => File.Exists(projectPath)
             ? Path.GetDirectoryName(projectPath) ?? projectPath
@@ -46,11 +77,14 @@ public sealed class MigrationService
 
     public MigrationToolConfig LoadConfig(string? projectPath = null)
     {
-        if (File.Exists(ConfigFilePath))
+        foreach (var candidate in EnumerateConfigCandidates(projectPath).Distinct(StringComparer.OrdinalIgnoreCase))
         {
+            if (!File.Exists(candidate))
+                continue;
+
             try
             {
-                var json = File.ReadAllText(ConfigFilePath);
+                var json = File.ReadAllText(candidate);
                 var config = JsonSerializer.Deserialize<MigrationToolConfig>(json, JsonOptions);
                 if (config is not null)
                 {
@@ -61,28 +95,6 @@ public sealed class MigrationService
             }
             catch
             {
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(projectPath))
-        {
-            var legacyConfigFile = Path.Combine(GetProjectDir(projectPath), ConfigFileName);
-            if (File.Exists(legacyConfigFile))
-            {
-                try
-                {
-                    var json = File.ReadAllText(legacyConfigFile);
-                    var config = JsonSerializer.Deserialize<MigrationToolConfig>(json, JsonOptions);
-                    if (config is not null)
-                    {
-                        if (string.IsNullOrWhiteSpace(config.ProjectPath))
-                            config.ProjectPath = projectPath;
-                        return config;
-                    }
-                }
-                catch
-                {
-                }
             }
         }
 
@@ -97,11 +109,14 @@ public sealed class MigrationService
 
     public MigrationSettings LoadSettings(string? projectPath = null)
     {
-        if (File.Exists(SettingsFilePath))
+        foreach (var candidate in EnumerateSettingsCandidates(projectPath).Distinct(StringComparer.OrdinalIgnoreCase))
         {
+            if (!File.Exists(candidate))
+                continue;
+
             try
             {
-                var json = File.ReadAllText(SettingsFilePath);
+                var json = File.ReadAllText(candidate);
                 var settings = JsonSerializer.Deserialize<MigrationSettings>(json, JsonOptions);
                 if (settings is not null)
                 {
@@ -112,28 +127,6 @@ public sealed class MigrationService
             }
             catch
             {
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(projectPath))
-        {
-            var legacySettingsFile = Path.Combine(GetProjectDir(projectPath), SettingsDirectoryName, SettingsFileName);
-            if (File.Exists(legacySettingsFile))
-            {
-                try
-                {
-                    var json = File.ReadAllText(legacySettingsFile);
-                    var settings = JsonSerializer.Deserialize<MigrationSettings>(json, JsonOptions);
-                    if (settings is not null)
-                    {
-                        if (string.IsNullOrWhiteSpace(settings.ProjectPath))
-                            settings.ProjectPath = projectPath;
-                        return settings;
-                    }
-                }
-                catch
-                {
-                }
             }
         }
 
@@ -460,7 +453,7 @@ public sealed class MigrationService
                 new XElement("TargetFramework", targetFramework),
                 new XElement("ImplicitUsings", "enable"),
                 new XElement("Nullable", "enable"),
-                new XElement("TranbokWorkspaceMarker", "design-settings-v2")));
+                new XElement("TOrbitWorkspaceMarker", "design-settings-v2")));
 
         var references = new XElement("ItemGroup",
             new XElement("ProjectReference", new XAttribute("Include", Normalize(Path.GetRelativePath(workspaceDirectory, domainProjectPath)))));
@@ -580,13 +573,14 @@ using Microsoft.EntityFrameworkCore.Design;
 __PROVIDER_USING__
 using __CONTEXT_NAMESPACE__;
 
-namespace Tranbok.Migrations.WorkSpace;
+namespace TOrbit.Migrations.WorkSpace;
 
 public sealed class WorkspaceDesignTimeFactory : IDesignTimeDbContextFactory<__CONTEXT_NAME__>
 {
     public __CONTEXT_NAME__ CreateDbContext(string[] args)
     {
-        var connectionString = Environment.GetEnvironmentVariable(""TRANBOK_DB_CONNECTION"")
+        var connectionString = Environment.GetEnvironmentVariable(""TORBIT_DB_CONNECTION"")
+            ?? Environment.GetEnvironmentVariable(""TRANBOK_DB_CONNECTION"")
             ?? throw new InvalidOperationException(""No connection string configured."");
 
         var options = new DbContextOptionsBuilder<__CONTEXT_NAME__>();
@@ -660,7 +654,10 @@ public sealed class WorkspaceDesignTimeFactory : IDesignTimeDbContextFactory<__C
         };
 
         if (!string.IsNullOrWhiteSpace(connectionString))
-            psi.Environment["TRANBOK_DB_CONNECTION"] = connectionString;
+        {
+            psi.Environment[CurrentConnectionEnvVar] = connectionString;
+            psi.Environment[LegacyConnectionEnvVar] = connectionString;
+        }
 
         psi.Environment["DOTNET_CLI_UI_LANGUAGE"] = "zh-CN";
 
