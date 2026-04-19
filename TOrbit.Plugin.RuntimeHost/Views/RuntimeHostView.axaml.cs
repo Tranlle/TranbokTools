@@ -20,4 +20,16 @@ public partial class RuntimeHostView : UserControl
         viewModel.SelectedApp = item;
         e.Handled = false;
     }
+
+    private void AppCard_OnDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is not Control { DataContext: HostedAppItemViewModel item })
+            return;
+
+        if (DataContext is not RuntimeHostViewModel viewModel)
+            return;
+
+        viewModel.OpenDetailsCommand.Execute(item);
+        e.Handled = true;
+    }
 }

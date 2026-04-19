@@ -50,6 +50,9 @@ public sealed partial class HostedAppItemViewModel : ObservableObject
         : L("runtime.item.notRunning");
     public string LastError => _runtimeState.LastError;
     public bool HasError => !string.IsNullOrWhiteSpace(_runtimeState.LastError);
+    public bool CanStart => _runtimeState.Status is RuntimeAppStatus.Stopped or RuntimeAppStatus.Faulted;
+    public bool CanStop => _runtimeState.Status is RuntimeAppStatus.Running or RuntimeAppStatus.Starting;
+    public bool CanRestart => !string.IsNullOrWhiteSpace(_profile.EntryRelativePath);
     public IBrush StatusBrush => _runtimeState.Status switch
     {
         RuntimeAppStatus.Running => ResolveBrush("TOrbitBadgeSuccessForegroundBrush"),
@@ -91,6 +94,9 @@ public sealed partial class HostedAppItemViewModel : ObservableObject
         OnPropertyChanged(nameof(UptimeLabel));
         OnPropertyChanged(nameof(LastError));
         OnPropertyChanged(nameof(HasError));
+        OnPropertyChanged(nameof(CanStart));
+        OnPropertyChanged(nameof(CanStop));
+        OnPropertyChanged(nameof(CanRestart));
         OnPropertyChanged(nameof(StatusBrush));
     }
 

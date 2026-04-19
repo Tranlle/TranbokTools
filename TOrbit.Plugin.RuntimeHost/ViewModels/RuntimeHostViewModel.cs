@@ -14,6 +14,7 @@ using TOrbit.Plugin.Core.Abstractions;
 using TOrbit.Plugin.Core.Models;
 using TOrbit.Plugin.RuntimeHost.Models;
 using TOrbit.Plugin.RuntimeHost.Services;
+using TOrbit.Plugin.RuntimeHost.Views;
 
 namespace TOrbit.Plugin.RuntimeHost.ViewModels;
 
@@ -103,6 +104,10 @@ public sealed partial class RuntimeHostViewModel : PluginBaseViewModel, IDisposa
     public IAsyncRelayCommand StartCommand { get; }
     public IAsyncRelayCommand StopCommand { get; }
     public IAsyncRelayCommand RestartCommand { get; }
+    public IAsyncRelayCommand<HostedAppItemViewModel> StartAppCommand { get; }
+    public IAsyncRelayCommand<HostedAppItemViewModel> StopAppCommand { get; }
+    public IAsyncRelayCommand<HostedAppItemViewModel> RestartAppCommand { get; }
+    public IAsyncRelayCommand<HostedAppItemViewModel> OpenDetailsCommand { get; }
     public IRelayCommand SaveProfileCommand { get; }
     public IRelayCommand ClearLogCommand { get; }
     public IRelayCommand<HostedAppItemViewModel> SelectAppCommand { get; }
@@ -128,6 +133,10 @@ public sealed partial class RuntimeHostViewModel : PluginBaseViewModel, IDisposa
         StartCommand = new AsyncRelayCommand(StartSelectedAsync);
         StopCommand = new AsyncRelayCommand(StopSelectedAsync);
         RestartCommand = new AsyncRelayCommand(RestartSelectedAsync);
+        StartAppCommand = new AsyncRelayCommand<HostedAppItemViewModel>(StartAppAsync);
+        StopAppCommand = new AsyncRelayCommand<HostedAppItemViewModel>(StopAppAsync);
+        RestartAppCommand = new AsyncRelayCommand<HostedAppItemViewModel>(RestartAppAsync);
+        OpenDetailsCommand = new AsyncRelayCommand<HostedAppItemViewModel>(ShowDetailsAsync);
         SaveProfileCommand = new RelayCommand(SaveSelectedProfile);
         ClearLogCommand = new RelayCommand(() => OutputLog = string.Empty);
         SelectAppCommand = new RelayCommand<HostedAppItemViewModel>(item =>
@@ -401,6 +410,15 @@ public sealed partial class RuntimeHostViewModel : PluginBaseViewModel, IDisposa
         await StartAsync(SelectedApp.Profile);
     }
 
+    private async Task StartAppAsync(HostedAppItemViewModel? item)
+    {
+        if (item is null)
+            return;
+
+        SelectedApp = item;
+        await StartAsync(item.Profile);
+    }
+
     private async Task StartAsync(HostedAppProfile profile)
     {
         if (string.IsNullOrWhiteSpace(profile.EntryRelativePath))
@@ -444,6 +462,19 @@ public sealed partial class RuntimeHostViewModel : PluginBaseViewModel, IDisposa
         RaiseSelectionProperties();
     }
 
+    private async Task StopAppAsync(HostedAppItemViewModel? item)
+    {
+        if (item is null)
+            return;
+
+        SelectedApp = item;
+        var state = await _processService.StopAsync(item.Id);
+        _itemIndex[item.Id].UpdateState(state);
+        StatusMessage = string.Format(_localizationService.GetString("runtime.messages.stopped"), item.Name);
+        HeaderSummaryChanged?.Invoke(this, EventArgs.Empty);
+        RaiseSelectionProperties();
+    }
+
     private async Task RestartSelectedAsync()
     {
         if (SelectedApp is null)
@@ -471,6 +502,56 @@ public sealed partial class RuntimeHostViewModel : PluginBaseViewModel, IDisposa
             AppendLog(SelectedApp.Id, "Error", $"{_localizationService.GetString("runtime.messages.restartFailed")}: {ex.Message}");
             StatusMessage = _localizationService.GetString("runtime.messages.restartFailed");
         }
+    }
+
+    private async Task RestartAppAsync(HostedAppItemViewModel? item)
+    {
+        if (item is null)
+            return;
+
+        SelectedApp = item;
+
+        try
+        {
+            var request = new RuntimeStartRequest
+            {
+                ProfileId = item.Id,
+                WorkingDirectory = _store.GetCurrentDeploymentDirectory(item.Id),
+                EntryRelativePath = item.Profile.EntryRelativePath,
+                RunWithDotnet = item.Profile.RunWithDotnet,
+                EnvironmentVariables = item.Profile.EnvironmentVariables
+            };
+
+            var state = await _processService.RestartAsync(request);
+            item.UpdateState(state);
+            StatusMessage = string.Format(_localizationService.GetString("runtime.messages.restarted"), item.Name);
+            HeaderSummaryChanged?.Invoke(this, EventArgs.Empty);
+            RaiseSelectionProperties();
+        }
+        catch (Exception ex)
+        {
+            AppendLog(item.Id, "Error", $"{_localizationService.GetString("runtime.messages.restartFailed")}: {ex.Message}");
+            StatusMessage = _localizationService.GetString("runtime.messages.restartFailed");
+        }
+    }
+
+    private async Task ShowDetailsAsync(HostedAppItemViewModel? item)
+    {
+        if (item is null || _dialogService is null || TryGetOwnerWindow() is not { } owner)
+            return;
+
+        SelectedApp = item;
+        await _dialogService.ShowSheetAsync(owner, new DesignerSheetViewModel
+        {
+            Title = item.Name,
+            Description = _localizationService.GetString("runtime.headerContext"),
+            Content = new RuntimeHostDetailsSheetView { DataContext = this },
+            ConfirmText = _localizationService.GetString("dialog.close"),
+            CancelText = string.Empty,
+            DialogWidth = 1120,
+            DialogHeight = 860,
+            LockSize = false
+        });
     }
 
     private void SaveSelectedProfile()
