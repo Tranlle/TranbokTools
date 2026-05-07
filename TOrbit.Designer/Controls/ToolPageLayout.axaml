@@ -3,8 +3,11 @@
              xmlns:controls="using:TOrbit.Designer.Controls"
              x:Class="TOrbit.Designer.Controls.ToolPageLayout"
              x:DataType="controls:ToolPageLayout"
-             x:Name="Root">
-  <Grid>
+             x:Name="Root"
+             MinHeight="0"
+             VerticalAlignment="Stretch">
+  <Grid MinHeight="0"
+        VerticalAlignment="Stretch">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
       <RowDefinition Height="{Binding HeaderBodyGapHeight, ElementName=Root}" />
@@ -15,7 +18,9 @@
 
     <ContentPresenter Content="{Binding HeaderContent, ElementName=Root}" />
     <ContentPresenter Grid.Row="2"
-                      Content="{Binding BodyContent, ElementName=Root}" />
+                      Content="{Binding BodyContent, ElementName=Root}"
+                      MinHeight="0"
+                      VerticalAlignment="Stretch" />
     <ContentPresenter Grid.Row="4"
                       Content="{Binding FooterContent, ElementName=Root}" />
   </Grid>

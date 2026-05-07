@@ -1,41 +1,150 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:TOrbit.Plugin.Promptor.ViewModels"
+             xmlns:models="using:TOrbit.Plugin.Promptor.Models"
              xmlns:loc="using:TOrbit.Designer.Markup"
              x:DataType="vm:PromptorViewModel"
+             x:Name="Root"
              x:Class="TOrbit.Plugin.Promptor.Views.LogDialogView">
-  <Grid RowDefinitions="Auto,12,*">
+  <Grid RowDefinitions="Auto,12,*,12,Auto">
     <Grid Grid.Row="0"
           ColumnDefinitions="*,Auto">
-      <TextBlock Grid.Column="0"
-                 Classes="caption-muted"
-                 VerticalAlignment="Center"
-                 Text="{Binding LogEntriesSummary}" />
+      <StackPanel Grid.Column="0"
+                  Orientation="Horizontal"
+                  Spacing="12"
+                  VerticalAlignment="Center">
+        <TextBlock Classes="caption-muted"
+                   Text="{Binding LogEntriesSummary}" />
+        <TextBlock Classes="caption-muted"
+                   Text="{Binding LogPageSummary}"
+                   IsVisible="{Binding HasLogEntries}" />
+      </StackPanel>
       <Button Grid.Column="1"
               Content="{loc:Loc promptor.clearLog}"
               Command="{Binding ClearLogCommand}"
               Classes="danger" />
     </Grid>
 
-    <Border Grid.Row="2"
-            Background="{DynamicResource TOrbitBackgroundBrush}"
-            BorderBrush="{DynamicResource TOrbitBorderBrush}"
-            BorderThickness="1"
-            CornerRadius="{DynamicResource TOrbitRadiusMedium}">
-      <TextBox Text="{Binding FormattedLogText}"
-               IsReadOnly="True"
-               AcceptsReturn="True"
-               TextWrapping="NoWrap"
-               VerticalContentAlignment="Top"
-               FontFamily="{DynamicResource TOrbitMonoFontFamily}"
-               FontSize="12"
-               LineHeight="20"
-               Foreground="{DynamicResource TOrbitTextSecondaryBrush}"
-               Background="Transparent"
-               BorderThickness="0"
-               Padding="16,12"
-               ScrollViewer.HorizontalScrollBarVisibility="Auto"
-               ScrollViewer.VerticalScrollBarVisibility="Auto" />
-    </Border>
+    <ScrollViewer Grid.Row="2"
+                  VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding PagedLogEntries}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:PromptorLogEntry">
+            <Border Classes="card"
+                    Padding="14"
+                    Margin="0,0,0,10">
+              <Grid RowDefinitions="Auto,8,Auto,8,Auto"
+                    ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Row="0"
+                            Grid.Column="0"
+                            Orientation="Horizontal"
+                            Spacing="10"
+                            VerticalAlignment="Center">
+                  <Border Background="{DynamicResource TOrbitBadgeInfoBackgroundBrush}"
+                          BorderBrush="{DynamicResource TOrbitBorderBrush}"
+                          BorderThickness="1"
+                          CornerRadius="999"
+                          Padding="10,4">
+                    <TextBlock Text="{Binding StatusText}"
+                               Foreground="{DynamicResource TOrbitBadgeInfoForegroundBrush}"
+                               FontSize="11"
+                               FontWeight="Medium" />
+                  </Border>
+                  <TextBlock Text="{Binding TimeText}"
+                             Classes="field-value" />
+                  <TextBlock Text="{Binding DurationText}"
+                             Classes="caption-muted" />
+                </StackPanel>
+
+                <Button Grid.Row="0"
+                        Grid.Column="1"
+                        Content="{loc:Loc promptor.logDetail}"
+                        Command="{Binding #Root.DataContext.ShowLogDetailCommand}"
+                        CommandParameter="{Binding}" />
+
+                <Grid Grid.Row="2"
+                      Grid.ColumnSpan="2"
+                      ColumnDefinitions="1.1*,1.1*,0.8*"
+                      ColumnSpacing="12">
+                  <StackPanel Grid.Column="0"
+                              Spacing="2">
+                    <TextBlock Text="{loc:Loc promptor.logFields.template}"
+                               Classes="field-label" />
+                    <TextBlock Text="{Binding StrategyLabel}"
+                               Classes="field-value"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="1"
+                              Spacing="2">
+                    <TextBlock Text="{loc:Loc promptor.logFields.model}"
+                               Classes="field-label" />
+                    <TextBlock Text="{Binding ModelText}"
+                               Classes="field-value"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="2"
+                              Spacing="2">
+                    <TextBlock Text="{loc:Loc promptor.logFields.params}"
+                               Classes="field-label" />
+                    <TextBlock Text="{Binding ParameterText}"
+                               Classes="field-value"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Grid>
+
+                <Grid Grid.Row="4"
+                      Grid.ColumnSpan="2"
+                      ColumnDefinitions="*,*"
+                      ColumnSpacing="12">
+                  <StackPanel Grid.Column="0"
+                              Spacing="4">
+                    <TextBlock Text="{loc:Loc promptor.logFields.input}"
+                               Classes="field-label" />
+                    <TextBlock Text="{Binding InputPreview}"
+                               Classes="caption-muted"
+                               TextWrapping="Wrap"
+                               MaxLines="2" />
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="1"
+                              Spacing="4">
+                    <TextBlock Text="{loc:Loc promptor.logFields.output}"
+                               Classes="field-label" />
+                    <TextBlock Text="{Binding OutputPreview}"
+                               Classes="caption-muted"
+                               TextWrapping="Wrap"
+                               MaxLines="2" />
+                    <TextBlock Text="{Binding ErrorPreview}"
+                               Foreground="{DynamicResource TOrbitBadgeDangerForegroundBrush}"
+                               TextWrapping="Wrap"
+                               MaxLines="2" />
+                  </StackPanel>
+                </Grid>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <Grid Grid.Row="4"
+          ColumnDefinitions="Auto,*,Auto"
+          IsVisible="{Binding HasLogEntries}">
+      <Button Grid.Column="0"
+              Content="{loc:Loc promptor.previousPage}"
+              Command="{Binding PreviousLogPageCommand}"
+              IsEnabled="{Binding HasPreviousLogPage}" />
+      <TextBlock Grid.Column="1"
+                 Text="{Binding LogPageSummary}"
+                 Classes="caption-muted"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center" />
+      <Button Grid.Column="2"
+              Content="{loc:Loc promptor.nextPage}"
+              Command="{Binding NextLogPageCommand}"
+              IsEnabled="{Binding HasNextLogPage}" />
+    </Grid>
   </Grid>
 </UserControl>

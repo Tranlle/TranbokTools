@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TOrbit.Plugin.Promptor.ViewModels"
+             xmlns:designer="using:TOrbit.Designer.Controls"
+             xmlns:loc="using:TOrbit.Designer.Markup"
+             x:DataType="vm:PromptorApiSettingsViewModel"
+             x:Class="TOrbit.Plugin.Promptor.Views.ApiSettingsSheetView">
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+          RowSpacing="14">
+      <designer:FormField Grid.Row="0"
+                          Label="{loc:Loc promptor.apiSettingsFields.provider}"
+                          Description="{loc:Loc promptor.apiSettingsHints.provider}">
+        <ComboBox ItemsSource="{Binding ProviderOptions}"
+                  SelectedItem="{Binding SelectedProvider, Mode=TwoWay}"
+                  DisplayMemberBinding="{Binding Label}"
+                  MinWidth="240" />
+      </designer:FormField>
+
+      <Border Grid.Row="1"
+              Background="{DynamicResource TOrbitSurfaceHoverBrush}"
+              BorderBrush="{DynamicResource TOrbitBorderBrush}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource TOrbitRadiusMedium}"
+              Padding="12">
+        <TextBlock Text="{Binding PresetSummary}"
+                   Classes="caption-muted"
+                   TextWrapping="Wrap" />
+      </Border>
+
+      <designer:FormField Grid.Row="2"
+                          Label="{loc:Loc promptor.apiSettingsFields.endpoint}"
+                          Description="{loc:Loc promptor.apiSettingsHints.endpoint}">
+        <TextBox Text="{Binding ApiEndpoint, Mode=TwoWay}"
+                 PlaceholderText="{Binding PresetEndpoint}" />
+      </designer:FormField>
+
+      <designer:FormField Grid.Row="3"
+                          Label="{loc:Loc promptor.apiSettingsFields.apiKey}"
+                          Description="{loc:Loc promptor.apiSettingsHints.apiKey}">
+        <TextBox Text="{Binding ApiKey, Mode=TwoWay}"
+                 PasswordChar="*"
+                 PlaceholderText="sk-..." />
+      </designer:FormField>
+
+      <designer:FormField Grid.Row="4"
+                          Label="{loc:Loc promptor.apiSettingsFields.model}"
+                          Description="{loc:Loc promptor.apiSettingsHints.model}">
+        <TextBox Text="{Binding ModelName, Mode=TwoWay}"
+                 PlaceholderText="{Binding PresetModelName}" />
+      </designer:FormField>
+
+      <Grid Grid.Row="5"
+            ColumnDefinitions="*,16,*">
+        <designer:FormField Grid.Column="0"
+                            Label="{loc:Loc promptor.apiSettingsFields.maxTokens}"
+                            Description="{loc:Loc promptor.apiSettingsHints.maxTokens}">
+          <TextBox Text="{Binding MaxTokens, Mode=TwoWay}"
+                   PlaceholderText="2048" />
+        </designer:FormField>
+
+        <designer:FormField Grid.Column="2"
+                            Label="{loc:Loc promptor.apiSettingsFields.temperature}"
+                            Description="{loc:Loc promptor.apiSettingsHints.temperature}">
+          <TextBox Text="{Binding Temperature, Mode=TwoWay}"
+                   PlaceholderText="1.0" />
+        </designer:FormField>
+      </Grid>
+
+      <Border Grid.Row="6"
+              Background="{DynamicResource TOrbitSurfaceHoverBrush}"
+              BorderBrush="{DynamicResource TOrbitBorderBrush}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource TOrbitRadiusMedium}"
+              Padding="12">
+        <TextBlock Text="{loc:Loc promptor.apiSettingsNote}"
+                   Classes="caption-muted"
+                   TextWrapping="Wrap" />
+      </Border>
+    </Grid>
+  </ScrollViewer>
+</UserControl>

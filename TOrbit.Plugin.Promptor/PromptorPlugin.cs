@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using TOrbit.Core.Models;
+using TOrbit.Core.Services;
 using TOrbit.Designer.Abstractions;
 using TOrbit.Designer.Services;
 using TOrbit.Plugin.Core;
@@ -12,17 +14,19 @@ using TOrbit.Plugin.Promptor.Views;
 
 namespace TOrbit.Plugin.Promptor;
 
-public sealed class PromptorPlugin : BasePlugin, IVisualPlugin, IPluginVariableReceiver, IPluginHeaderActionsProvider, IPluginDisplayInfoProvider
+public sealed class PromptorPlugin : BasePlugin, IVisualPlugin, IPluginVariableReceiver, IPluginDisplayInfoProvider
 {
     private PromptorView? _view;
     private PromptorViewModel? _viewModel;
     private PromptorVariables _variables = new();
     private readonly ILocalizationService _localizationService;
+    private readonly IPluginVariableService _variableService;
     private readonly PluginDescriptor _descriptor;
 
-    public PromptorPlugin(ILocalizationService localizationService)
+    public PromptorPlugin(ILocalizationService localizationService, IPluginVariableService variableService)
     {
         _localizationService = localizationService;
+        _variableService = variableService;
         _descriptor = CreateDescriptor<PromptorPlugin>(
             PromptorPluginMetadata.Instance.Id,
             _localizationService.GetString("plugins.promptor.name"),
@@ -84,6 +88,23 @@ public sealed class PromptorPlugin : BasePlugin, IVisualPlugin, IPluginVariableR
 
     public string DisplayDescription => _localizationService.GetString("plugins.promptor.description");
 
+    public void SaveVariables(PromptorVariables variables)
+    {
+        var store = _variableService.Load();
+        store.Entries.RemoveAll(entry =>
+            string.Equals(entry.PluginId, Descriptor.Id, StringComparison.OrdinalIgnoreCase));
+
+        AddVariable(store, "PROMPTOR_PROVIDER", variables.Provider);
+        AddVariable(store, "PROMPTOR_API_ENDPOINT", variables.ApiEndpoint);
+        AddVariable(store, "PROMPTOR_API_KEY", variables.ApiKey);
+        AddVariable(store, "PROMPTOR_MODEL_NAME", variables.ModelName);
+        AddVariable(store, "PROMPTOR_MAX_TOKENS", variables.MaxTokens.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        AddVariable(store, "PROMPTOR_TEMPERATURE", variables.Temperature.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        _variableService.Save(store);
+        _variableService.InjectOne(this);
+    }
+
     public void OnVariablesInjected(IReadOnlyDictionary<string, string> rawValues)
     {
         var tool = Context.GetTool<IPluginEncryptionTool>();
@@ -111,28 +132,13 @@ public sealed class PromptorPlugin : BasePlugin, IVisualPlugin, IPluginVariableR
         return _view!;
     }
 
-    public IReadOnlyList<PluginHeaderAction> GetHeaderActions()
-    {
-        EnsureView();
-        if (_viewModel is null)
-            return [];
-
-        return
-        [
-            new PluginHeaderAction(_localizationService.GetString("promptor.log"), _viewModel.ShowLogCommand),
-            new PluginHeaderAction(_localizationService.GetString("promptor.clear"), _viewModel.ClearAllCommand),
-            new PluginHeaderAction(_localizationService.GetString("promptor.copy"), _viewModel.CopyCommand),
-            new PluginHeaderAction(_localizationService.GetString("promptor.optimize"), _viewModel.OptimizeCommand, IsPrimary: true)
-        ];
-    }
-
     private void EnsureView()
     {
         if (_viewModel is null)
         {
             _localizationService.LanguageChanged += LocalizationServiceOnLanguageChanged;
             var dialogService = Context.GetTool<IDesignerDialogService>();
-            _viewModel = new PromptorViewModel(dialogService, _variables, _localizationService);
+            _viewModel = new PromptorViewModel(dialogService, SaveVariables, _variables, _localizationService);
         }
 
         _view ??= new PromptorView { DataContext = _viewModel };
@@ -149,4 +155,18 @@ public sealed class PromptorPlugin : BasePlugin, IVisualPlugin, IPluginVariableR
 
     private void LocalizationServiceOnLanguageChanged(object? sender, EventArgs e)
         => DisplayInfoChanged?.Invoke(this, EventArgs.Empty);
+
+    private void AddVariable(PluginVariableStore store, string key, string value)
+    {
+        var definition = Descriptor.VariableDefinitions?
+            .FirstOrDefault(item => string.Equals(item.Key, key, StringComparison.OrdinalIgnoreCase));
+
+        store.Entries.Add(new PluginVariableEntry
+        {
+            PluginId = Descriptor.Id,
+            Key = key,
+            Value = value,
+            IsEncrypted = definition?.IsEncrypted ?? false
+        });
+    }
 }

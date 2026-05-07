@@ -648,6 +648,32 @@
     "clear": "清空",
     "copy": "复制",
     "optimize": "优化",
+    "apiSettings": "API 设置",
+    "apiSettingsDescription": "配置提示词优化调用的模型供应商、接口、密钥和生成参数。",
+    "apiSettingsPresetSummary": "当前预设：Endpoint {0}，模型 {1}，Max Tokens {2}，Temperature {3}。通常只需要填写 API Key。",
+    "apiSettingsNote": "Endpoint 可填写服务根地址，插件会自动补齐 /chat/completions。Ollama 默认使用本地 http://localhost:11434/v1/chat/completions。",
+    "apiSettingsFields": {
+      "provider": "供应商",
+      "endpoint": "API Endpoint",
+      "apiKey": "API Key",
+      "model": "模型名称",
+      "maxTokens": "Max Tokens",
+      "temperature": "Temperature"
+    },
+    "apiSettingsHints": {
+      "provider": "选择 OpenAI 兼容的模型供应商。",
+      "endpoint": "留空时使用当前供应商预设地址；自定义服务可填写根地址。",
+      "apiKey": "除本地 Ollama 外，通常需要填写鉴权密钥。",
+      "model": "默认使用当前供应商预设模型；需要时可手动覆盖。",
+      "maxTokens": "优化结果的最大输出 token 数。",
+      "temperature": "采样温度，范围 0 到 2。"
+    },
+    "apiSettingsValidation": {
+      "provider": "请选择 API 供应商。",
+      "model": "模型名称不能为空。",
+      "maxTokens": "Max Tokens 必须是正整数。",
+      "temperature": "Temperature 必须在 0 到 2 之间。"
+    },
     "logEmpty": "暂无日志",
     "logEmptyDescription": "执行优化后，历史记录会显示在这里。",
     "inputEyebrow": "输入",
@@ -659,27 +685,51 @@
     "outputDescription": "查看生成后的提示词。",
     "outputPlaceholder": "优化后的提示词会显示在这里",
     "logEntriesFormat": "共 {0} 条记录",
+    "logPageFormat": "第 {0} / {1} 页",
+    "previousPage": "上一页",
+    "nextPage": "下一页",
     "clearLog": "清空日志",
+    "logDetail": "查看详情",
+    "logFields": {
+      "time": "时间",
+      "status": "状态",
+      "template": "模板",
+      "model": "模型",
+      "params": "参数",
+      "duration": "耗时",
+      "endpoint": "Endpoint",
+      "input": "请求输入",
+      "output": "响应输出",
+      "error": "错误信息"
+    },
     "strategy": {
-      "structured": {
-        "label": "结构化",
-        "description": "重组并澄清提示词"
+      "taskExecution": {
+        "label": "通用任务",
+        "description": "按 CRISPE 明确目标、步骤和交付标准"
       },
-      "fewShot": {
-        "label": "少样本",
-        "description": "补充示例"
+      "coding": {
+        "label": "代码开发",
+        "description": "补齐技术栈、边界、测试和输出要求"
       },
-      "chainOfThought": {
-        "label": "推理链",
-        "description": "引导模型分步思考"
+      "writing": {
+        "label": "写作创作",
+        "description": "明确读者、语气、结构和修改标准"
       },
-      "concise": {
-        "label": "精简",
-        "description": "压缩冗余表达"
+      "researchAnalysis": {
+        "label": "研究分析",
+        "description": "强化范围、证据、维度和结论格式"
       },
-      "technical": {
-        "label": "技术向",
-        "description": "强化约束和格式"
+      "extraction": {
+        "label": "信息提取",
+        "description": "定义字段、规则、缺失值和结构化输出"
+      },
+      "reviewEvaluation": {
+        "label": "评审评估",
+        "description": "聚焦标准、证据、严重程度和改进建议"
+      },
+      "agentWorkflow": {
+        "label": "Agent 工作流",
+        "description": "规划多步骤执行、工具边界和验证方式"
       }
     },
     "messages": {
@@ -693,6 +743,7 @@
       "failed": "失败",
       "optimizeFailed": "优化失败",
       "apiKeyRequired": "请先配置 API Key 或自定义接口地址。",
+      "apiSettingsSaved": "API 设置已保存",
       "copied": "已复制",
       "copyFailed": "复制失败"
     }

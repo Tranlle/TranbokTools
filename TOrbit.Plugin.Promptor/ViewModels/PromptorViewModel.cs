@@ -21,6 +21,7 @@ namespace TOrbit.Plugin.Promptor.ViewModels;
 public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
 {
     private readonly IDesignerDialogService? _dialogService;
+    private readonly Action<PromptorVariables> _saveVariables;
     private readonly ILocalizationService _localizationService;
     private readonly PromptOptimizationService _service = new();
     private PromptorVariables _variables;
@@ -48,12 +49,13 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
     private string statusMessage;
 
     public ObservableCollection<PromptorLogEntry> LogEntries { get; } = [];
+    public ObservableCollection<PromptorLogEntry> PagedLogEntries { get; } = [];
 
     public string FormattedLogText => LogEntries.Count == 0
         ? $"{L("promptor.logEmpty")}{Environment.NewLine}{Environment.NewLine}{L("promptor.logEmptyDescription")}"
         : string.Join(Environment.NewLine + Environment.NewLine, LogEntries.Select(entry => entry.FormatAsText()));
 
-    public IReadOnlyList<DesignerOptionItem> StrategyOptions => BuildStrategyOptions();
+    public ObservableCollection<DesignerOptionItem> StrategyOptions { get; } = [];
 
     public bool HasRawInput => !string.IsNullOrWhiteSpace(RawInput);
     public bool HasOptimizedOutput => !string.IsNullOrWhiteSpace(OptimizedOutput);
@@ -63,6 +65,15 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
     public string CopyButtonText => IsCopied ? L("promptor.copied") : L("promptor.copy");
     public int LogCount => LogEntries.Count;
     public string LogEntriesSummary => string.Format(L("promptor.logEntriesFormat"), LogEntries.Count);
+    public int LogPageSize => 5;
+    public int TotalLogPages => Math.Max(1, (int)Math.Ceiling(LogEntries.Count / (double)LogPageSize));
+    public string LogPageSummary => string.Format(L("promptor.logPageFormat"), CurrentLogPage, TotalLogPages);
+    public bool HasLogEntries => LogEntries.Count > 0;
+    public bool HasPreviousLogPage => CurrentLogPage > 1;
+    public bool HasNextLogPage => CurrentLogPage < TotalLogPages;
+
+    [ObservableProperty]
+    private int currentLogPage = 1;
 
     public IRelayCommand OptimizeCommand { get; }
     public IRelayCommand CopyCommand { get; }
@@ -71,15 +82,25 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
     public IRelayCommand CancelCommand { get; }
     public IRelayCommand ShowLogCommand { get; }
     public IRelayCommand ClearLogCommand { get; }
+    public IRelayCommand PreviousLogPageCommand { get; }
+    public IRelayCommand NextLogPageCommand { get; }
+    public IRelayCommand<PromptorLogEntry> ShowLogDetailCommand { get; }
+    public IRelayCommand OpenApiSettingsCommand { get; }
 
-    public PromptorViewModel(IDesignerDialogService? dialogService, PromptorVariables variables, ILocalizationService localizationService)
+    public PromptorViewModel(
+        IDesignerDialogService? dialogService,
+        Action<PromptorVariables> saveVariables,
+        PromptorVariables variables,
+        ILocalizationService localizationService)
     {
         _dialogService = dialogService;
+        _saveVariables = saveVariables;
         _variables = variables;
         _localizationService = localizationService;
         statusMessage = L("runtime.ready");
 
-        SelectedStrategyOption = StrategyOptions[0];
+        InitializeStrategyOptions();
+        SelectDefaultStrategy();
 
         OptimizeCommand = new AsyncRelayCommand(OptimizeAsync);
         CopyCommand = new AsyncRelayCommand(CopyToClipboardAsync);
@@ -88,14 +109,25 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
         CancelCommand = new RelayCommand(() => _cts?.Cancel());
         ShowLogCommand = new AsyncRelayCommand(ShowLogDialogAsync);
         ClearLogCommand = new RelayCommand(ClearLog);
+        PreviousLogPageCommand = new RelayCommand(PreviousLogPage);
+        NextLogPageCommand = new RelayCommand(NextLogPage);
+        ShowLogDetailCommand = new AsyncRelayCommand<PromptorLogEntry>(ShowLogDetailAsync);
+        OpenApiSettingsCommand = new AsyncRelayCommand(OpenApiSettingsAsync);
 
         LogEntries.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(FormattedLogText));
             OnPropertyChanged(nameof(LogCount));
             OnPropertyChanged(nameof(LogEntriesSummary));
+            OnPropertyChanged(nameof(TotalLogPages));
+            OnPropertyChanged(nameof(LogPageSummary));
+            OnPropertyChanged(nameof(HasLogEntries));
+            if (CurrentLogPage > TotalLogPages)
+                CurrentLogPage = TotalLogPages;
+            RefreshPagedLogEntries();
             HeaderSummaryChanged?.Invoke(this, EventArgs.Empty);
         };
+        RefreshPagedLogEntries();
     }
 
     partial void OnRawInputChanged(string value) => RaiseDerivedProperties();
@@ -108,7 +140,23 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
         HeaderSummaryChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    partial void OnSelectedStrategyOptionChanged(DesignerOptionItem? value) => RaiseDerivedProperties();
+    partial void OnSelectedStrategyOptionChanged(DesignerOptionItem? value)
+    {
+        if (value is null && StrategyOptions.Count > 0)
+        {
+            SelectDefaultStrategy();
+            return;
+        }
+
+        RaiseDerivedProperties();
+    }
+    partial void OnCurrentLogPageChanged(int value)
+    {
+        OnPropertyChanged(nameof(LogPageSummary));
+        OnPropertyChanged(nameof(HasPreviousLogPage));
+        OnPropertyChanged(nameof(HasNextLogPage));
+        RefreshPagedLogEntries();
+    }
 
     public void UpdateVariables(PromptorVariables variables)
     {
@@ -147,8 +195,8 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
 
         var strategy = SelectedStrategyOption?.Value is OptimizationStrategy selected
             ? selected
-            : OptimizationStrategy.Structured;
-        var strategyLabel = SelectedStrategyOption?.Label ?? L("promptor.strategy.structured.label");
+            : OptimizationStrategy.TaskExecution;
+        var strategyLabel = SelectedStrategyOption?.Label ?? L("promptor.strategy.taskExecution.label");
         var inputPreview = RawInput.Length > 80
             ? RawInput[..80].Replace('\n', ' ').Replace('\r', ' ') + "..."
             : RawInput.Replace('\n', ' ').Replace('\r', ' ');
@@ -200,9 +248,14 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
                 StrategyLabel = strategyLabel,
                 Model = config.ModelName,
                 Provider = config.Provider,
+                Endpoint = ResolveEndpoint(config),
                 IsSuccess = success,
                 Duration = sw.Elapsed,
+                MaxTokens = config.MaxTokens,
+                Temperature = config.Temperature,
                 InputPreview = inputPreview,
+                Input = RawInput,
+                Output = OptimizedOutput,
                 ErrorMessage = errorMessage
             });
         }
@@ -295,6 +348,87 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
     private void ClearLog()
     {
         LogEntries.Clear();
+        CurrentLogPage = 1;
+    }
+
+    private void PreviousLogPage()
+    {
+        if (CurrentLogPage > 1)
+            CurrentLogPage--;
+    }
+
+    private void NextLogPage()
+    {
+        if (CurrentLogPage < TotalLogPages)
+            CurrentLogPage++;
+    }
+
+    private void RefreshPagedLogEntries()
+    {
+        PagedLogEntries.Clear();
+        foreach (var entry in LogEntries.Skip((CurrentLogPage - 1) * LogPageSize).Take(LogPageSize))
+            PagedLogEntries.Add(entry);
+
+        OnPropertyChanged(nameof(HasPreviousLogPage));
+        OnPropertyChanged(nameof(HasNextLogPage));
+    }
+
+    private async Task ShowLogDetailAsync(PromptorLogEntry? entry)
+    {
+        if (entry is null || _dialogService is null || TryGetOwnerWindow() is not { } owner)
+            return;
+
+        var content = new LogDetailView { DataContext = entry };
+        await _dialogService.ShowSheetAsync(owner, new DesignerSheetViewModel
+        {
+            Title = L("promptor.logDetail"),
+            Description = $"{entry.TimeText} · {entry.ModelText}",
+            Content = content,
+            ConfirmText = L("dialog.close"),
+            CancelText = string.Empty,
+            Icon = DesignerDialogIcon.Info,
+            BaseFontSize = 13,
+            DialogWidth = 900,
+            DialogHeight = 720,
+            LockSize = true,
+            HideSystemDecorations = true
+        });
+    }
+
+    private async Task OpenApiSettingsAsync()
+    {
+        if (_dialogService is null || TryGetOwnerWindow() is not { } owner)
+            return;
+
+        var viewModel = new PromptorApiSettingsViewModel(_variables, _localizationService);
+        var content = new ApiSettingsSheetView { DataContext = viewModel };
+
+        var result = await _dialogService.ShowSheetAsync(owner, new DesignerSheetViewModel
+        {
+            Title = L("promptor.apiSettings"),
+            Description = L("promptor.apiSettingsDescription"),
+            Content = content,
+            ConfirmText = L("dialog.confirm"),
+            CancelText = L("dialog.cancel"),
+            Icon = DesignerDialogIcon.Info,
+            BaseFontSize = 13,
+            DialogWidth = 680,
+            DialogHeight = 620,
+            LockSize = true,
+            HideSystemDecorations = true
+        });
+
+        if (!result.IsConfirmed)
+            return;
+
+        if (!viewModel.TryBuildVariables(out var variables, out var errorMessage))
+        {
+            await ShowAlertAsync(L("promptor.messages.configError"), errorMessage);
+            return;
+        }
+
+        _saveVariables(variables);
+        StatusMessage = L("promptor.messages.apiSettingsSaved");
     }
 
     private async Task ShowAlertAsync(string title, string message)
@@ -312,46 +446,88 @@ public sealed partial class PromptorViewModel : PluginBaseViewModel, IDisposable
         });
     }
 
-    private IReadOnlyList<DesignerOptionItem> BuildStrategyOptions() =>
-    [
-        new DesignerOptionItem
+    private void InitializeStrategyOptions()
+    {
+        StrategyOptions.Clear();
+
+        StrategyOptions.Add(new DesignerOptionItem
         {
-            Key = "Structured",
-            Label = L("promptor.strategy.structured.label"),
-            Value = OptimizationStrategy.Structured,
-            Description = L("promptor.strategy.structured.description")
-        },
-        new DesignerOptionItem
+            Key = "TaskExecution",
+            Label = L("promptor.strategy.taskExecution.label"),
+            Value = OptimizationStrategy.TaskExecution,
+            Description = L("promptor.strategy.taskExecution.description")
+        });
+        StrategyOptions.Add(new DesignerOptionItem
         {
-            Key = "FewShot",
-            Label = L("promptor.strategy.fewShot.label"),
-            Value = OptimizationStrategy.FewShot,
-            Description = L("promptor.strategy.fewShot.description")
-        },
-        new DesignerOptionItem
+            Key = "Coding",
+            Label = L("promptor.strategy.coding.label"),
+            Value = OptimizationStrategy.Coding,
+            Description = L("promptor.strategy.coding.description")
+        });
+        StrategyOptions.Add(new DesignerOptionItem
         {
-            Key = "ChainOfThought",
-            Label = L("promptor.strategy.chainOfThought.label"),
-            Value = OptimizationStrategy.ChainOfThought,
-            Description = L("promptor.strategy.chainOfThought.description")
-        },
-        new DesignerOptionItem
+            Key = "Writing",
+            Label = L("promptor.strategy.writing.label"),
+            Value = OptimizationStrategy.Writing,
+            Description = L("promptor.strategy.writing.description")
+        });
+        StrategyOptions.Add(new DesignerOptionItem
         {
-            Key = "Concise",
-            Label = L("promptor.strategy.concise.label"),
-            Value = OptimizationStrategy.Concise,
-            Description = L("promptor.strategy.concise.description")
-        },
-        new DesignerOptionItem
+            Key = "ResearchAnalysis",
+            Label = L("promptor.strategy.researchAnalysis.label"),
+            Value = OptimizationStrategy.ResearchAnalysis,
+            Description = L("promptor.strategy.researchAnalysis.description")
+        });
+        StrategyOptions.Add(new DesignerOptionItem
         {
-            Key = "Technical",
-            Label = L("promptor.strategy.technical.label"),
-            Value = OptimizationStrategy.Technical,
-            Description = L("promptor.strategy.technical.description")
-        }
-    ];
+            Key = "Extraction",
+            Label = L("promptor.strategy.extraction.label"),
+            Value = OptimizationStrategy.Extraction,
+            Description = L("promptor.strategy.extraction.description")
+        });
+        StrategyOptions.Add(new DesignerOptionItem
+        {
+            Key = "ReviewEvaluation",
+            Label = L("promptor.strategy.reviewEvaluation.label"),
+            Value = OptimizationStrategy.ReviewEvaluation,
+            Description = L("promptor.strategy.reviewEvaluation.description")
+        });
+        StrategyOptions.Add(new DesignerOptionItem
+        {
+            Key = "AgentWorkflow",
+            Label = L("promptor.strategy.agentWorkflow.label"),
+            Value = OptimizationStrategy.AgentWorkflow,
+            Description = L("promptor.strategy.agentWorkflow.description")
+        });
+    }
+
+    private void SelectDefaultStrategy()
+    {
+        SelectedStrategyOption = StrategyOptions.FirstOrDefault(option =>
+            option.Value is OptimizationStrategy.TaskExecution) ?? StrategyOptions.FirstOrDefault();
+    }
 
     private string L(string key) => _localizationService.GetString(key);
+
+    private static string ResolveEndpoint(PromptorConfig config)
+    {
+        if (!string.IsNullOrWhiteSpace(config.ApiEndpoint))
+        {
+            var ep = config.ApiEndpoint.TrimEnd('/');
+            if (!ep.EndsWith("/chat/completions", StringComparison.OrdinalIgnoreCase))
+                ep += "/chat/completions";
+            return ep;
+        }
+
+        return config.Provider.ToLowerInvariant() switch
+        {
+            "openai" => "https://api.openai.com/v1/chat/completions",
+            "qwen" => "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+            "kimi" => "https://api.moonshot.cn/v1/chat/completions",
+            "ollama" => "http://localhost:11434/v1/chat/completions",
+            _ => string.Empty
+        };
+    }
 
     private static Window? TryGetOwnerWindow()
     {

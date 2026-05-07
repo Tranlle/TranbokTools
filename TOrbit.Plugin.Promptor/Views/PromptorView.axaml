@@ -4,7 +4,9 @@
              xmlns:designer="using:TOrbit.Designer.Controls"
              xmlns:loc="using:TOrbit.Designer.Markup"
              x:DataType="vm:PromptorViewModel"
-             x:Class="TOrbit.Plugin.Promptor.Views.PromptorView">
+             x:Class="TOrbit.Plugin.Promptor.Views.PromptorView"
+             MinHeight="0"
+             VerticalAlignment="Stretch">
 
   <UserControl.Styles>
     <Style Selector="ComboBox.inline-compact">
@@ -18,16 +20,21 @@
   </UserControl.Styles>
 
   <designer:ToolPageLayout FooterHeight="0"
-                           BodyFooterGapHeight="0">
+                           BodyFooterGapHeight="0"
+                           MinHeight="0"
+                           VerticalAlignment="Stretch">
     <designer:ToolPageLayout.BodyContent>
       <Grid RowDefinitions="Auto,*"
-            RowSpacing="14">
+            RowSpacing="14"
+            MinHeight="0"
+            VerticalAlignment="Stretch">
         <Grid ColumnDefinitions="Auto,*,Auto"
               ColumnSpacing="12"
               VerticalAlignment="Center">
           <ComboBox Classes="inline-compact"
                     MinWidth="160"
                     ItemsSource="{Binding StrategyOptions}"
+                    SelectedIndex="0"
                     SelectedItem="{Binding SelectedStrategyOption, Mode=TwoWay}"
                     DisplayMemberBinding="{Binding Label}" />
 
@@ -42,6 +49,10 @@
                       Orientation="Horizontal"
                       Spacing="8"
                       VerticalAlignment="Center">
+            <Button Content="{loc:Loc promptor.apiSettings}"
+                    Command="{Binding OpenApiSettingsCommand}" />
+            <Button Content="{loc:Loc promptor.log}"
+                    Command="{Binding ShowLogCommand}" />
             <Border Background="{DynamicResource TOrbitSurfaceHoverBrush}"
                     BorderBrush="{DynamicResource TOrbitBorderBrush}"
                     BorderThickness="1"
@@ -60,7 +71,9 @@
         <designer:SplitWorkspace Grid.Row="1"
                                  LeftWidth="*"
                                  LeftMinWidth="320"
-                                 RightMinWidth="320">
+                                 RightMinWidth="320"
+                                 MinHeight="0"
+                                 VerticalAlignment="Stretch">
           <designer:SplitWorkspace.LeftContent>
             <designer:CardTextEditor Eyebrow="{loc:Loc promptor.inputEyebrow}"
                                      Title="{loc:Loc promptor.inputTitle}"
@@ -69,7 +82,22 @@
                                      PlaceholderText="{loc:Loc promptor.inputPlaceholder}"
                                      AcceptsReturn="True"
                                      AcceptsTab="True"
-                                     SubmitCommand="{Binding OptimizeCommand}" />
+                                     SubmitCommand="{Binding OptimizeCommand}"
+                                     MinHeight="0"
+                                     VerticalAlignment="Stretch">
+              <designer:CardTextEditor.ActionContent>
+                <StackPanel Orientation="Horizontal"
+                            Spacing="8">
+                  <Button Content="{loc:Loc promptor.clear}"
+                          Command="{Binding ClearAllCommand}"
+                          IsEnabled="{Binding HasRawInput}" />
+                  <Button Content="{loc:Loc promptor.optimize}"
+                          Command="{Binding OptimizeCommand}"
+                          IsEnabled="{Binding CanOptimize}"
+                          Classes="accent" />
+                </StackPanel>
+              </designer:CardTextEditor.ActionContent>
+            </designer:CardTextEditor>
           </designer:SplitWorkspace.LeftContent>
 
           <designer:SplitWorkspace.RightContent>
@@ -78,11 +106,19 @@
                                      Description="{loc:Loc promptor.outputDescription}"
                                      Text="{Binding OptimizedOutput, Mode=TwoWay}"
                                      PlaceholderText="{loc:Loc promptor.outputPlaceholder}"
-                                     IsReadOnly="True">
+                                     IsReadOnly="True"
+                                     MinHeight="0"
+                                     VerticalAlignment="Stretch">
               <designer:CardTextEditor.ActionContent>
-                <Button Content="{loc:Loc promptor.clear}"
-                        Command="{Binding ClearOutputCommand}"
-                        IsEnabled="{Binding HasOptimizedOutput}" />
+                <StackPanel Orientation="Horizontal"
+                            Spacing="8">
+                  <Button Content="{loc:Loc promptor.copy}"
+                          Command="{Binding CopyCommand}"
+                          IsEnabled="{Binding HasOptimizedOutput}" />
+                  <Button Content="{loc:Loc promptor.clear}"
+                          Command="{Binding ClearOutputCommand}"
+                          IsEnabled="{Binding HasOptimizedOutput}" />
+                </StackPanel>
               </designer:CardTextEditor.ActionContent>
             </designer:CardTextEditor>
           </designer:SplitWorkspace.RightContent>

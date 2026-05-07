@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "entryAssembly": "TOrbit.Plugin.Promptor.dll",
   "entryType": "TOrbit.Plugin.Promptor.PromptorPlugin",
-  "description": "AI prompt optimization workspace with structured, few-shot, reasoning, concise, and technical strategies.",
+  "description": "AI prompt optimization workspace with CRISPE-based templates for tasks, coding, writing, research, extraction, review, and agent workflows.",
   "author": "T-Orbit",
   "icon": "AutoFixHigh",
   "tags": "AI,Prompt,Llm",

@@ -3,7 +3,9 @@
              xmlns:controls="using:TOrbit.Designer.Controls"
              x:Class="TOrbit.Designer.Controls.CardTextEditor"
              x:DataType="controls:CardTextEditor"
-             x:Name="Root">
+             x:Name="Root"
+             MinHeight="0"
+             VerticalAlignment="Stretch">
 
   <UserControl.Styles>
     <Style Selector="TextBox#EditorBox">
@@ -24,9 +26,13 @@
 
   <Border x:Name="CardBorder"
           Classes="workspace-panel"
-          ClipToBounds="True">
+          ClipToBounds="True"
+          MinHeight="0"
+          VerticalAlignment="Stretch">
 
-    <Grid RowDefinitions="Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,*"
+          MinHeight="0"
+          VerticalAlignment="Stretch">
 
       <!-- Header -->
       <Grid Grid.Row="0"
@@ -61,6 +67,8 @@
       <!-- Editor -->
       <TextBox Grid.Row="2"
                x:Name="EditorBox"
+               MinHeight="0"
+               VerticalAlignment="Stretch"
                Text="{Binding Text, ElementName=Root, Mode=TwoWay}"
                PlaceholderText="{Binding PlaceholderText, ElementName=Root}"
                IsReadOnly="{Binding IsReadOnly, ElementName=Root}"

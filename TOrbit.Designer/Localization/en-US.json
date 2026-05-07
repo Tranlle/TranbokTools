@@ -648,6 +648,32 @@
     "clear": "Clear",
     "copy": "Copy",
     "optimize": "Optimize",
+    "apiSettings": "API Settings",
+    "apiSettingsDescription": "Configure the model provider, endpoint, credential, and generation parameters used by Promptor.",
+    "apiSettingsPresetSummary": "Current preset: endpoint {0}, model {1}, max tokens {2}, temperature {3}. Usually only the API key is required.",
+    "apiSettingsNote": "Endpoint can be the service root; Promptor appends /chat/completions automatically. Ollama defaults to local http://localhost:11434/v1/chat/completions.",
+    "apiSettingsFields": {
+      "provider": "Provider",
+      "endpoint": "API Endpoint",
+      "apiKey": "API Key",
+      "model": "Model Name",
+      "maxTokens": "Max Tokens",
+      "temperature": "Temperature"
+    },
+    "apiSettingsHints": {
+      "provider": "Choose an OpenAI-compatible model provider.",
+      "endpoint": "Leave empty to use the selected provider preset; custom services can use a root URL.",
+      "apiKey": "Most providers require an authorization key except local Ollama.",
+      "model": "Uses the selected provider preset by default; override it when needed.",
+      "maxTokens": "Maximum output token count for the optimized prompt.",
+      "temperature": "Sampling temperature, from 0 to 2."
+    },
+    "apiSettingsValidation": {
+      "provider": "Select an API provider.",
+      "model": "Model name is required.",
+      "maxTokens": "Max Tokens must be a positive integer.",
+      "temperature": "Temperature must be between 0 and 2."
+    },
     "logEmpty": "No log entries",
     "logEmptyDescription": "Optimization history will appear here after you run a task.",
     "inputEyebrow": "Input",
@@ -659,27 +685,51 @@
     "outputDescription": "Review the generated prompt.",
     "outputPlaceholder": "The optimized prompt will appear here",
     "logEntriesFormat": "Total {0} entries",
+    "logPageFormat": "Page {0} / {1}",
+    "previousPage": "Previous",
+    "nextPage": "Next",
     "clearLog": "Clear log",
+    "logDetail": "Details",
+    "logFields": {
+      "time": "Time",
+      "status": "Status",
+      "template": "Template",
+      "model": "Model",
+      "params": "Params",
+      "duration": "Duration",
+      "endpoint": "Endpoint",
+      "input": "Request Input",
+      "output": "Response Output",
+      "error": "Error"
+    },
     "strategy": {
-      "structured": {
-        "label": "Structured",
-        "description": "Restructure and clarify the prompt"
+      "taskExecution": {
+        "label": "General task",
+        "description": "Use CRISPE to clarify goals, steps, and acceptance criteria"
       },
-      "fewShot": {
-        "label": "Few-shot",
-        "description": "Add examples"
+      "coding": {
+        "label": "Coding",
+        "description": "Add stack, boundaries, tests, and output requirements"
       },
-      "chainOfThought": {
-        "label": "Reasoning",
-        "description": "Guide the model step by step"
+      "writing": {
+        "label": "Writing",
+        "description": "Clarify audience, tone, structure, and revision rules"
       },
-      "concise": {
-        "label": "Concise",
-        "description": "Compress redundant wording"
+      "researchAnalysis": {
+        "label": "Research",
+        "description": "Strengthen scope, evidence, criteria, and conclusion format"
       },
-      "technical": {
-        "label": "Technical",
-        "description": "Strengthen constraints and format"
+      "extraction": {
+        "label": "Extraction",
+        "description": "Define fields, rules, missing values, and structured output"
+      },
+      "reviewEvaluation": {
+        "label": "Review",
+        "description": "Focus criteria, evidence, severity, and improvements"
+      },
+      "agentWorkflow": {
+        "label": "Agent workflow",
+        "description": "Plan multi-step execution, tool boundaries, and verification"
       }
     },
     "messages": {
@@ -693,6 +743,7 @@
       "failed": "Failed",
       "optimizeFailed": "Optimization failed",
       "apiKeyRequired": "Configure an API key or custom endpoint first.",
+      "apiSettingsSaved": "API settings saved",
       "copied": "Copied",
       "copyFailed": "Copy failed"
     }

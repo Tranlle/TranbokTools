@@ -1,0 +1,84 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="using:TOrbit.Plugin.Promptor.Models"
+             xmlns:designer="using:TOrbit.Designer.Controls"
+             xmlns:loc="using:TOrbit.Designer.Markup"
+             x:DataType="models:PromptorLogEntry"
+             x:Class="TOrbit.Plugin.Promptor.Views.LogDetailView">
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="14">
+      <Grid ColumnDefinitions="*,16,*"
+            RowDefinitions="Auto,Auto,Auto"
+            RowSpacing="12">
+        <designer:FormField Grid.Row="0"
+                            Grid.Column="0"
+                            Label="{loc:Loc promptor.logFields.time}">
+          <TextBox Text="{Binding TimeText}"
+                   IsReadOnly="True" />
+        </designer:FormField>
+        <designer:FormField Grid.Row="0"
+                            Grid.Column="2"
+                            Label="{loc:Loc promptor.logFields.status}">
+          <TextBox Text="{Binding StatusText}"
+                   IsReadOnly="True" />
+        </designer:FormField>
+        <designer:FormField Grid.Row="1"
+                            Grid.Column="0"
+                            Label="{loc:Loc promptor.logFields.template}">
+          <TextBox Text="{Binding StrategyLabel}"
+                   IsReadOnly="True" />
+        </designer:FormField>
+        <designer:FormField Grid.Row="1"
+                            Grid.Column="2"
+                            Label="{loc:Loc promptor.logFields.duration}">
+          <TextBox Text="{Binding DurationText}"
+                   IsReadOnly="True" />
+        </designer:FormField>
+        <designer:FormField Grid.Row="2"
+                            Grid.Column="0"
+                            Label="{loc:Loc promptor.logFields.model}">
+          <TextBox Text="{Binding ModelText}"
+                   IsReadOnly="True" />
+        </designer:FormField>
+        <designer:FormField Grid.Row="2"
+                            Grid.Column="2"
+                            Label="{loc:Loc promptor.logFields.params}">
+          <TextBox Text="{Binding ParameterText}"
+                   IsReadOnly="True" />
+        </designer:FormField>
+      </Grid>
+
+      <designer:FormField Label="{loc:Loc promptor.logFields.endpoint}">
+        <TextBox Text="{Binding Endpoint}"
+                 IsReadOnly="True" />
+      </designer:FormField>
+
+      <designer:FormField Label="{loc:Loc promptor.logFields.input}">
+        <TextBox Text="{Binding Input}"
+                 IsReadOnly="True"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 MinHeight="140"
+                 VerticalContentAlignment="Top" />
+      </designer:FormField>
+
+      <designer:FormField Label="{loc:Loc promptor.logFields.output}">
+        <TextBox Text="{Binding Output}"
+                 IsReadOnly="True"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 MinHeight="180"
+                 VerticalContentAlignment="Top" />
+      </designer:FormField>
+
+      <designer:FormField Label="{loc:Loc promptor.logFields.error}">
+        <TextBox Text="{Binding ErrorMessage}"
+                 IsReadOnly="True"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 MinHeight="90"
+                 VerticalContentAlignment="Top" />
+      </designer:FormField>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
